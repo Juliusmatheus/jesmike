@@ -4,6 +4,7 @@ const cors = require('cors');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
 const nodemailer = require('nodemailer');
 require('dotenv').config();
 
@@ -13,12 +14,15 @@ const requestedPort = Number(process.env.PORT) || 5002;
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// NOTE: On Vercel, filesystem is ephemeral. Uploaded files will NOT persist between invocations.
+// For production-grade uploads, use object storage (S3/Supabase storage/etc).
+const isVercel = Boolean(process.env.VERCEL);
+const uploadDir = isVercel ? path.join(os.tmpdir(), 'uploads') : path.join(__dirname, 'uploads');
+app.use('/uploads', express.static(uploadDir));
 
 // Ensure uploads directory exists
-const uploadDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir);
+  fs.mkdirSync(uploadDir, { recursive: true });
 }
 
 // Multer storage configuration
@@ -2628,4 +2632,9 @@ function startServer(portToTry, attemptsLeft = 5) {
   });
 }
 
-startServer(requestedPort);
+// Export the app for Vercel serverless usage; only listen when running locally
+module.exports = app;
+
+if (require.main === module) {
+  startServer(requestedPort);
+}
