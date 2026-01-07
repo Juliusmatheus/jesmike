@@ -16,13 +16,14 @@ import {
   Cell
 } from 'recharts';
 import './StatisticsDashboard.css';
+import { getApiBaseUrl } from '../../utils/apiBaseUrl';
 
 const StatisticsDashboard = () => {
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [loading, setLoading] = useState(true);
 
   // Data from database
-  const [regionData, setRegionData] = useState([]);
+  const [regionData, setRegionData] = useState([]); // countries (stored in DB under `region`)
   const [sectorData, setSectorData] = useState([]);
   const [growthData, setGrowthData] = useState([]);
   const [genderData, setGenderData] = useState([]);
@@ -42,7 +43,7 @@ const StatisticsDashboard = () => {
     const fetchStatisticsData = async () => {
       setLoading(true);
       try {
-        const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+        const API_BASE_URL = getApiBaseUrl();
 
         // Fetch all statistics data from backend API (with cache busting)
         const timestamp = new Date().getTime();
@@ -134,7 +135,7 @@ const StatisticsDashboard = () => {
   // Export functions
   const exportToCSV = async () => {
     try {
-      const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+      const API_BASE_URL = getApiBaseUrl();
       const response = await axios.get(`${API_BASE_URL}/api/export/csv`, {
         responseType: 'blob'
       });
@@ -155,7 +156,7 @@ const StatisticsDashboard = () => {
 
   const exportToExcel = async () => {
     try {
-      const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+      const API_BASE_URL = getApiBaseUrl();
       const response = await axios.get(`${API_BASE_URL}/api/export/excel`, {
         responseType: 'blob'
       });
@@ -175,7 +176,7 @@ const StatisticsDashboard = () => {
 
   const exportToPDF = async () => {
     try {
-      const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+      const API_BASE_URL = getApiBaseUrl();
       const response = await axios.get(`${API_BASE_URL}/api/export/pdf`, {
         responseType: 'blob'
       });
@@ -205,8 +206,8 @@ const StatisticsDashboard = () => {
       ['Total Deals', totalStats.totalDeals],
       ['Total Employment', totalStats.totalEmployment],
       [''],
-      ['Regional Distribution'],
-      ['Region', 'SMEs', 'Investments', 'Employment'],
+      ['Country Distribution'],
+      ['Country', 'SMEs', 'Investments', 'Employment'],
       ...regionData.map(region => [
         region.name,
         region.smes,
@@ -268,7 +269,7 @@ const StatisticsDashboard = () => {
             className={`filter-btn ${selectedFilter === 'all' ? 'active' : ''}`}
             onClick={() => setSelectedFilter('all')}
           >
-            All Regions
+            All Countries
           </button>
           <button
             className={`filter-btn ${selectedFilter === 'year' ? 'active' : ''}`}
@@ -286,9 +287,9 @@ const StatisticsDashboard = () => {
 
         {/* Charts Grid */}
         <div className="charts-grid">
-          {/* SMEs by Region */}
+          {/* SMEs by Country */}
           <div className="chart-card">
-            <h3>business registered by Region</h3>
+            <h3>business registered by Country</h3>
             {loading ? (
               <div className="chart-loading">Loading data...</div>
             ) : regionData.length > 0 ? (
@@ -385,9 +386,9 @@ const StatisticsDashboard = () => {
             </ResponsiveContainer>
           </div>
 
-          {/* Investment Opportunities by Region */}
+          {/* Investment Opportunities by Country */}
           <div className="chart-card">
-            <h3>Investment Opportunities by Region</h3>
+            <h3>Investment Opportunities by Country</h3>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={regionData}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -403,12 +404,12 @@ const StatisticsDashboard = () => {
 
         {/* Data Table */}
         <div className="data-table-card">
-          <h3>Regional Statistics</h3>
+          <h3>Country Statistics</h3>
           <div className="table-responsive">
             <table className="stats-table">
               <thead>
                 <tr>
-                  <th>Region</th>
+                <th>Country</th>
                   <th>SMEs</th>
                   <th>Investments</th>
                   <th>Employment</th>

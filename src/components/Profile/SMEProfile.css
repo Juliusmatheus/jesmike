@@ -415,6 +415,30 @@
   gap: 8px;
 }
 
+.documents-ul {
+  margin: 10px 0 0;
+  padding-left: 18px;
+}
+
+.document-li {
+  margin: 6px 0;
+}
+
+.document-li a {
+  color: #003580;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.document-li a:hover {
+  text-decoration: underline;
+}
+
+.document-meta {
+  color: #6b7280;
+  font-size: 12px;
+}
+
 .form-actions-bottom {
   margin-top: 24px;
   padding-top: 24px;

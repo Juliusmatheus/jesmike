@@ -1,17 +1,31 @@
 .about-page {
+  --brand-blue: #003580;
+  --brand-green: #009639;
+  --text-strong: #0f172a;
+  --text-muted: #475569;
+  --surface: #ffffff;
+  --surface-2: rgba(255, 255, 255, 0.92);
+  --border: rgba(15, 23, 42, 0.12);
+  --shadow: 0 10px 30px rgba(2, 6, 23, 0.12);
+  --shadow-hover: 0 16px 40px rgba(2, 6, 23, 0.16);
+
   padding-top: 70px;
   min-height: calc(100vh - 70px);
-  background: #f5f7fa;
+  background:
+    radial-gradient(1200px 500px at 20% 0%, rgba(0, 53, 128, 0.08), transparent 60%),
+    radial-gradient(900px 480px at 80% 20%, rgba(0, 150, 57, 0.08), transparent 60%),
+    #f5f7fa;
+  color: var(--text-strong);
 }
 
 /* Hero Section with Sliding Background */
 .about-hero-section {
   position: relative;
-  min-height: 600px;
+  min-height: clamp(520px, 70vh, 780px);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 80px 20px;
+  padding: clamp(56px, 8vw, 96px) 20px;
   overflow: hidden;
 }
 
@@ -49,7 +63,9 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(135deg, rgba(0, 53, 128, 0.9) 0%, rgba(0, 71, 171, 0.85) 50%, rgba(0, 150, 57, 0.8) 100%);
+  background:
+    radial-gradient(800px 420px at 30% 20%, rgba(255, 255, 255, 0.18), transparent 70%),
+    linear-gradient(135deg, rgba(0, 53, 128, 0.92) 0%, rgba(0, 71, 171, 0.86) 50%, rgba(0, 150, 57, 0.82) 100%);
   z-index: 1;
 }
 
@@ -61,54 +77,70 @@
 }
 
 .hero-main-title {
-  font-size: 48px;
-  font-weight: 700;
+  font-size: clamp(28px, 5vw, 52px);
+  font-weight: 800;
   color: white;
   text-align: center;
-  margin-bottom: 60px;
-  letter-spacing: 2px;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+  margin-bottom: clamp(24px, 4vw, 56px);
+  letter-spacing: 0.04em;
+  text-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
 }
 
 /* Hero Feature Cards Grid */
 .hero-features-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 32px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 28px;
   margin-top: 40px;
 }
 
 .hero-feature-card {
-  background: rgba(255, 255, 255, 0.95);
-  padding: 40px 32px;
-  border-radius: 12px;
+  background: var(--surface-2);
+  padding: 34px 28px;
+  border-radius: 16px;
   text-align: center;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  box-shadow: var(--shadow);
   transition: transform 0.3s ease, box-shadow 0.3s ease;
   backdrop-filter: blur(10px);
 }
 
 .hero-feature-card:hover {
   transform: translateY(-8px);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-hover);
 }
 
 .hero-feature-icon {
-  font-size: 64px;
-  margin-bottom: 24px;
+  width: 86px;
+  height: 86px;
+  margin: 0 auto 18px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 10px 24px rgba(2, 6, 23, 0.12);
+}
+
+.hero-feature-icon-img {
+  width: 54px;
+  height: 54px;
+  display: inline-block;
+  object-fit: contain;
 }
 
 .hero-feature-card h3 {
   font-size: 20px;
-  font-weight: 600;
-  color: #003580;
+  font-weight: 700;
+  color: var(--brand-blue);
   margin-bottom: 16px;
   line-height: 1.4;
 }
 
 .hero-feature-card p {
   font-size: 15px;
-  color: #666;
+  color: rgba(15, 23, 42, 0.72);
   line-height: 1.6;
 }
 
@@ -119,7 +151,7 @@
 
 /* Vision and Mission Sections */
 .vision-mission-section {
-  padding: 100px 40px;
+  padding: clamp(60px, 7vw, 96px) 24px;
   text-align: center;
   margin-bottom: 0;
 }
@@ -133,18 +165,17 @@
 }
 
 .large-title {
-  font-size: 64px;
-  font-weight: 400;
+  font-size: clamp(32px, 4.6vw, 54px);
+  font-weight: 800;
   margin-bottom: 32px;
-  color: #1a1a1a;
-  font-family: 'Georgia', serif;
-  letter-spacing: -1px;
+  color: var(--text-strong);
+  letter-spacing: -0.02em;
 }
 
 .centered-text {
-  font-size: 20px;
+  font-size: clamp(16px, 1.8vw, 20px);
   line-height: 1.8;
-  color: #333;
+  color: var(--text-muted);
   max-width: 900px;
   margin: 0 auto;
   font-weight: 400;
@@ -156,18 +187,19 @@
 }
 
 .about-section.alt {
-  background: white;
+  background: var(--surface);
   border-radius: 16px;
   padding: 60px 40px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--border);
+  box-shadow: 0 8px 24px rgba(2, 6, 23, 0.08);
 }
 
 .section-title {
-  font-size: 36px;
-  font-weight: 700;
+  font-size: clamp(24px, 3vw, 36px);
+  font-weight: 800;
   text-align: center;
   margin-bottom: 48px;
-  color: #333;
+  color: var(--text-strong);
 }
 
 .section-content {
@@ -187,15 +219,15 @@
 
 .content-text h2 {
   font-size: 32px;
-  font-weight: 700;
+  font-weight: 800;
   margin-bottom: 24px;
-  color: #003580;
+  color: var(--brand-blue);
 }
 
 .content-text p {
   font-size: 18px;
   line-height: 1.8;
-  color: #666;
+  color: var(--text-muted);
   margin-bottom: 20px;
 }
 
@@ -228,24 +260,25 @@
 
 .objectives-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 32px;
   margin-top: 40px;
 }
 
 .objective-card {
-  background: white;
+  background: var(--surface);
   padding: 32px;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  box-shadow: 0 8px 24px rgba(2, 6, 23, 0.08);
   text-align: center;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
-  border-top: 4px solid #003580;
+  border-top: 4px solid var(--brand-blue);
 }
 
 .objective-card:hover {
   transform: translateY(-8px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 14px 36px rgba(2, 6, 23, 0.12);
 }
 
 .objective-icon {
@@ -254,23 +287,26 @@
 }
 
 .objective-image-icon {
-  width: 80px;
-  height: 80px;
+  width: 76px;
+  height: 76px;
   object-fit: contain;
   margin: 0 auto 16px;
   display: block;
-  border-radius: 8px;
+  border-radius: 16px;
+  padding: 10px;
+  background: rgba(2, 6, 23, 0.04);
+  border: 1px solid rgba(2, 6, 23, 0.06);
 }
 
 .objective-card h3 {
   font-size: 20px;
-  font-weight: 600;
+  font-weight: 800;
   margin-bottom: 12px;
-  color: #333;
+  color: var(--text-strong);
 }
 
 .objective-card p {
-  color: #666;
+  color: var(--text-muted);
   line-height: 1.6;
 }
 
@@ -282,36 +318,37 @@
 }
 
 .stakeholder-card {
-  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+  background: var(--surface);
   padding: 24px;
-  border-radius: 12px;
-  border: 2px solid #e1e8ed;
+  border-radius: 16px;
+  border: 1px solid var(--border);
   text-align: center;
   transition: all 0.3s ease;
+  box-shadow: 0 6px 18px rgba(2, 6, 23, 0.06);
 }
 
 .stakeholder-card:hover {
-  border-color: #003580;
+  border-color: rgba(0, 53, 128, 0.35);
   transform: translateY(-4px);
-  box-shadow: 0 4px 12px rgba(0, 53, 128, 0.2);
+  box-shadow: 0 14px 36px rgba(0, 53, 128, 0.12);
 }
 
 .stakeholder-card h3 {
   font-size: 18px;
-  font-weight: 600;
+  font-weight: 800;
   margin-bottom: 12px;
-  color: #333;
+  color: var(--text-strong);
 }
 
 .stakeholder-card p {
-  color: #666;
+  color: var(--text-muted);
   font-size: 14px;
   line-height: 1.6;
 }
 
 .stakeholder-logo {
   width: 100%;
-  max-width: 150px;
+  max-width: 140px;
   height: auto;
   margin: 0 auto 16px;
   display: block;
@@ -420,7 +457,6 @@
 /* Responsive Design */
 @media (max-width: 768px) {
   .hero-main-title {
-    font-size: 28px;
     margin-bottom: 40px;
   }
 
@@ -439,7 +475,13 @@
   }
 
   .hero-feature-icon {
-    font-size: 48px;
+    width: 80px;
+    height: 80px;
+  }
+
+  .hero-feature-icon-img {
+    width: 50px;
+    height: 50px;
   }
 
   .vision-mission-section {
@@ -508,18 +550,6 @@
 }
 
 @media (max-width: 480px) {
-  .about-page {
-    padding: 80px 10px 40px;
-  }
-
-  .about-hero {
-    padding: 40px 20px;
-  }
-
-  .about-hero h1 {
-    font-size: 24px;
-  }
-
   .section-title {
     font-size: 24px;
   }

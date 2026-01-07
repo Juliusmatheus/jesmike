@@ -71,9 +71,15 @@ const Navbar = () => {
           {isAuthenticated ? (
             <>
               <li>
-                <Link to="/dashboard" onClick={() => setMobileMenuOpen(false)}>
-                  Dashboard
-                </Link>
+                {isAdmin ? (
+                  <Link to="/dashboard" onClick={() => setMobileMenuOpen(false)}>
+                    Dashboard
+                  </Link>
+                ) : (
+                  <Link to="/profile" onClick={() => setMobileMenuOpen(false)}>
+                    Profile
+                  </Link>
+                )}
               </li>
               {isAdmin && (
                 <li>
@@ -82,11 +88,13 @@ const Navbar = () => {
                   </Link>
                 </li>
               )}
-              <li>
-                <Link to="/profile" onClick={() => setMobileMenuOpen(false)}>
-                  Profile
-                </Link>
-              </li>
+              {!isAdmin && (
+                <li>
+                  <Link to="/profile" onClick={() => setMobileMenuOpen(false)}>
+                    Profile
+                  </Link>
+                </li>
+              )}
               <li>
                 <button onClick={handleLogout} className="btn-logout">
                   Logout

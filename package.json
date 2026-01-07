@@ -4,6 +4,7 @@
   "description": "SME Registration & JESMIKE Investment Platform for Namibia",
   "private": true,
   "dependencies": {
+    "@react-google-maps/api": "^2.20.8",
     "axios": "^1.6.2",
     "date-fns": "^2.30.0",
     "react": "^18.2.0",
@@ -18,6 +19,7 @@
     "recharts": "^2.10.3"
   },
   "scripts": {
+    "dev": "react-scripts start",
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",

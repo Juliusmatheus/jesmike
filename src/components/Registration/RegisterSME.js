@@ -4,12 +4,8 @@ import { useDropzone } from 'react-dropzone';
 import { toast } from 'react-toastify';
 import axios from 'axios';
 import './RegisterSME.css';
-
-const NAMIBIA_REGIONS = [
-  'Erongo', 'Hardap', '//Karas', 'Kavango East', 'Kavango West',
-  'Khomas', 'Kunene', 'Ohangwena', 'Omaheke', 'Omusati',
-  'Oshana', 'Oshikoto', 'Otjozondjupa', 'Zambezi'
-];
+import { COUNTRIES } from '../../utils/countries';
+import { getApiBaseUrl } from '../../utils/apiBaseUrl';
 
 const INDUSTRY_SECTORS = [
   'Agriculture', 'Mining', 'Manufacturing', 'Construction',
@@ -25,12 +21,14 @@ const BUSINESS_TYPES = [
   'Close Corporation'
 ];
 
+const todayIso = () => new Date().toISOString().split('T')[0];
+
 const RegisterSME = () => {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [existingRegistration, setExistingRegistration] = useState(null);
-  const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+  const API_BASE_URL = getApiBaseUrl();
 
   const [formData, setFormData] = useState({
     // Business Information
@@ -38,7 +36,8 @@ const RegisterSME = () => {
     tradingName: '',
     industrySector: '',
     subSector: '',
-    operationStartDate: '',
+    // Default calendar to current date (CURRENT_TIMESTAMP)
+    operationStartDate: todayIso(),
     physicalAddress: '',
     region: '',
     numberOfEmployees: '',
@@ -75,7 +74,7 @@ const RegisterSME = () => {
           setExistingRegistration(response.data.sme);
           // Pre-fill form with existing data
           setFormData({
-            businessName: response.data.sme.business_name || '',
+            businessName: response.data.sme.businessName || '',
             tradingName: response.data.sme.trading_name || '',
             industrySector: response.data.sme.industry_sector || '',
             subSector: response.data.sme.sub_sector || '',
@@ -107,6 +106,15 @@ const RegisterSME = () => {
 
     checkExistingRegistration();
   }, [API_BASE_URL]);
+
+  // If there is no existing record and the date is empty (e.g. after a reset), keep it on CURRENT_TIMESTAMP
+  useEffect(() => {
+    if (existingRegistration) return;
+    if (!formData.operationStartDate) {
+      setFormData((prev) => ({ ...prev, operationStartDate: todayIso() }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [existingRegistration]);
 
   const onDrop = (acceptedFiles) => {
     const newFiles = acceptedFiles.map(file => ({
@@ -150,16 +158,22 @@ const RegisterSME = () => {
   const validateStep = (step) => {
     switch (step) {
       case 1:
-        if (!formData.businessName || !formData.operationStartDate || !formData.region) {
+        // Backend requires these fields (NOT NULL constraints)
+        if (
+          !formData.businessName ||
+          !formData.industrySector ||
+          !formData.operationStartDate ||
+          !formData.region ||
+          !formData.physicalAddress
+        ) {
           toast.error('Please fill in all required fields');
           return false;
         }
-        // Validate 3+ years requirement
+        // Validate operation start date (cannot be in the future)
         const startDate = new Date(formData.operationStartDate);
-        const threeYearsAgo = new Date();
-        threeYearsAgo.setFullYear(threeYearsAgo.getFullYear() - 3);
-        if (startDate > threeYearsAgo) {
-          toast.error('Business must have been operating for at least 3 years');
+        const now = new Date();
+        if (startDate > now) {
+          toast.error('Operation start date cannot be in the future');
           return false;
         }
         return true;
@@ -197,40 +211,50 @@ const RegisterSME = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validateStep(3)) return;
+    // Validate all steps on submit (in case user jumped around or edited fields)
+    if (!validateStep(1) || !validateStep(2) || !validateStep(3)) return;
 
     setLoading(true);
     try {
-      // Prepare data for submission
-      const registrationData = {
-        business_name: formData.businessName,
-        trading_name: formData.tradingName,
-        registration_number: `BUS${Date.now()}`, // Generate unique registration number
-        industry_sector: formData.industrySector,
-        sub_sector: formData.subSector,
-        established_date: formData.operationStartDate,
-        address: formData.physicalAddress,
-        region: formData.region,
-        city: formData.region, // Can be extracted from address if needed
-        employees: parseInt(formData.numberOfEmployees) || 0,
-        annual_turnover_range: formData.annualTurnover,
-        business_type: formData.businessType,
-        owner_name: formData.ownerFullName,
-        owner_id: formData.idNumber,
-        owner_passport: formData.passportNumber,
-        owner_gender: formData.gender === 'Male' ? 'M' : formData.gender === 'Female' ? 'F' : 'O',
-        owner_age: parseInt(formData.age),
-        owner_address: formData.ownerAddress,
-        nationality: formData.nationality,
-        years_experience: parseInt(formData.yearsOfExperience) || 0,
-        email: formData.email,
-        phone: formData.phone,
-        status: 'pending', // Will be reviewed by admin
-        documents_count: uploadedFiles.length
-      };
+      // Prepare data for submission using FormData to handle file uploads
+      const formDataToSend = new FormData();
+      
+      // Add business information
+      formDataToSend.append('business_name', formData.businessName);
+      formDataToSend.append('trading_name', formData.tradingName);
+      formDataToSend.append('registration_number', `BUS${Date.now()}`);
+      formDataToSend.append('industry_sector', formData.industrySector);
+      formDataToSend.append('sub_sector', formData.subSector);
+      formDataToSend.append('established_date', formData.operationStartDate);
+      formDataToSend.append('address', formData.physicalAddress);
+      formDataToSend.append('region', formData.region);
+      formDataToSend.append('city', formData.region);
+      formDataToSend.append('employees', formData.numberOfEmployees || 0);
+      formDataToSend.append('annual_turnover_range', formData.annualTurnover);
+      formDataToSend.append('business_type', formData.businessType);
+      
+      // Add owner information
+      formDataToSend.append('owner_name', formData.ownerFullName);
+      formDataToSend.append('owner_id', formData.idNumber);
+      formDataToSend.append('owner_passport', formData.passportNumber);
+      formDataToSend.append('owner_gender', formData.gender === 'Male' ? 'M' : formData.gender === 'Female' ? 'F' : 'O');
+      formDataToSend.append('owner_age', formData.age);
+      formDataToSend.append('owner_address', formData.ownerAddress);
+      formDataToSend.append('nationality', formData.nationality);
+      formDataToSend.append('years_experience', formData.yearsOfExperience || 0);
+      formDataToSend.append('email', formData.email);
+      formDataToSend.append('phone', formData.phone);
+      formDataToSend.append('status', 'pending');
+      
+      // Add documents
+      formData.documents.forEach((file) => {
+        formDataToSend.append('documents', file);
+      });
 
       // Submit to database
-      const response = await axios.post(`${API_BASE_URL}/api/sme/register`, registrationData);
+      // IMPORTANT: don't manually set Content-Type for FormData in the browser.
+      // Axios will set the correct multipart boundary automatically.
+      const response = await axios.post(`${API_BASE_URL}/api/sme/register`, formDataToSend);
 
       if (response.data.success) {
         // Store user email for future reference
@@ -239,9 +263,9 @@ const RegisterSME = () => {
 
         toast.success('Registration submitted successfully! Your application is under review.');
 
-        // Navigate to dashboard after short delay
+        // Navigate after short delay (dashboard is admin-only)
         setTimeout(() => {
-          navigate('/dashboard');
+          navigate('/profile');
         }, 2000);
       }
     } catch (error) {
@@ -252,7 +276,7 @@ const RegisterSME = () => {
       } else if (error.response?.status === 409) {
         toast.error('This email is already registered. Please use a different email or login.');
       } else {
-        toast.error('Registration failed. Please try again or contact support.');
+        toast.error(error.message || 'Registration failed. Please try again or contact support.');
       }
     } finally {
       setLoading(false);
@@ -324,12 +348,12 @@ const RegisterSME = () => {
                   value={formData.operationStartDate}
                   onChange={handleChange}
                   required
-                  max={new Date(new Date().setFullYear(new Date().getFullYear() - 3)).toISOString().split('T')[0]}
+                  max={todayIso()}
                 />
-                <small className="form-text">Must be at least 3 years ago</small>
+                <small className="form-text">Cannot be in the future</small>
               </div>
               <div className="form-group">
-                <label className="form-label">Region *</label>
+                <label className="form-label">Country *</label>
                 <select
                   name="region"
                   className="form-control"
@@ -337,9 +361,9 @@ const RegisterSME = () => {
                   onChange={handleChange}
                   required
                 >
-                  <option value="">Select region</option>
-                  {NAMIBIA_REGIONS.map(region => (
-                    <option key={region} value={region}>{region}</option>
+                  <option value="">Select country</option>
+                  {COUNTRIES.map((country) => (
+                    <option key={country} value={country}>{country}</option>
                   ))}
                 </select>
               </div>

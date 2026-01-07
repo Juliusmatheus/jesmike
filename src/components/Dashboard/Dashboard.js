@@ -2,10 +2,11 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import './Dashboard.css';
+import { getApiBaseUrl } from '../../utils/apiBaseUrl';
+import { useAuth } from '../../context/AuthContext';
 
 const Dashboard = () => {
-  // For demo purposes, using a mock user. In real app, get from auth context
-  const user = { id: 'user@example.com', name: 'Demo User' };
+  const { user } = useAuth();
 
   const [stats, setStats] = useState({
     registrationStatus: 'Loading...',
@@ -25,78 +26,37 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Fetch user dashboard data from database
+    let intervalId;
+    const API_BASE_URL = getApiBaseUrl();
+
     const fetchDashboardData = async () => {
+      if (!user?.email) return;
       setLoading(true);
       try {
-        const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
-
-        // Fetch user-specific dashboard data (with cache busting)
         const timestamp = new Date().getTime();
         const [dashboardResponse, activitiesResponse, summaryResponse] = await Promise.all([
-          axios.get(`${API_BASE_URL}/api/dashboard/${user?.id}?t=${timestamp}`),
-          axios.get(`${API_BASE_URL}/api/activities/${user?.id}?t=${timestamp}`),
-          axios.get(`${API_BASE_URL}/api/dashboard/summary?t=${timestamp}`)
+          axios.get(`${API_BASE_URL}/api/dashboard/user/${encodeURIComponent(user.email)}?t=${timestamp}`),
+          axios.get(`${API_BASE_URL}/api/activities/user/${encodeURIComponent(user.email)}?t=${timestamp}`),
+          axios.get(`${API_BASE_URL}/api/dashboard/summary?t=${timestamp}`),
         ]);
 
-        // Update user stats with real data from database
         setStats(dashboardResponse.data);
         setActivities(activitiesResponse.data);
         setPlatformStats(summaryResponse.data);
-
-        setLoading(false);
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
-
-        // Fallback to sample data if API is not available
-        setStats({
-          registrationStatus: 'Approved',
-          investmentOpportunities: 2,
-          messages: 3,
-          profileCompletion: 85,
-          businessName: 'Demo Business',
-          registrationNumber: 'SME001'
-        });
-
-        setActivities([
-          {
-            type: 'investment_deal',
-            title: 'Investment Deal',
-            description: 'Investment of NAD 150,000 received',
-            date: new Date().toLocaleDateString(),
-            icon: '💰'
-          },
-          {
-            type: 'opportunity',
-            title: 'Investment Opportunity',
-            description: 'Posted opportunity: Expansion Funding',
-            date: new Date(Date.now() - 86400000).toLocaleDateString(),
-            icon: '📈'
-          },
-          {
-            type: 'profile',
-            title: 'Profile Update',
-            description: 'Business profile updated',
-            date: new Date(Date.now() - 172800000).toLocaleDateString(),
-            icon: '👤'
-          }
-        ]);
-
-        setPlatformStats({
-          activeSMEs: 5,
-          totalInvestors: 3,
-          completedDeals: 3,
-          openOpportunities: 8
-        });
-
+      } finally {
         setLoading(false);
       }
     };
 
-    if (user) {
-      fetchDashboardData();
-    }
-  }, [user]);
+    fetchDashboardData();
+    intervalId = setInterval(fetchDashboardData, 5000); // "realtime" polling
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [user?.email]);
 
   return (
     <div className="dashboard-container">

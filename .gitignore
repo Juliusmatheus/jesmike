@@ -31,6 +31,10 @@ yarn-error.log*
 # OS
 Thumbs.db
 
+# Local uploads / generated files (do not commit)
+backend/uploads/
+test.pdf
+
 
 
 

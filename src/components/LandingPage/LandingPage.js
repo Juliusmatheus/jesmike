@@ -63,7 +63,9 @@ const LandingPage = () => {
               </p>
             </div>
             <div className="feature-card">
-              <div className="feature-icon">💼</div>
+              <div className="feature-icon">
+                <img src="/hero-images/link.svg" alt="Connect with investors" />
+              </div>
               <h3>Connect with potential Investors</h3>
               <p>
                 Access investment opportunities from potentiaL investors

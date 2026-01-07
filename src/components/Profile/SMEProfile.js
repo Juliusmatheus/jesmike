@@ -3,6 +3,9 @@ import { useAuth } from '../../context/AuthContext';
 import { toast } from 'react-toastify';
 import axios from 'axios';
 import './SMEProfile.css';
+import { getApiBaseUrl } from '../../utils/apiBaseUrl';
+
+const todayIso = () => new Date().toISOString().split('T')[0];
 
 const SMEProfile = () => {
   const { user } = useAuth();
@@ -22,7 +25,7 @@ const SMEProfile = () => {
     const fetchProfileData = async () => {
       setLoading(true);
       try {
-        const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+        const API_BASE_URL = getApiBaseUrl();
         const userEmail = localStorage.getItem('userEmail') || user?.email || 'user@example.com';
         const timestamp = new Date().getTime();
         const response = await axios.get(`${API_BASE_URL}/api/sme/check/${userEmail}?t=${timestamp}`);
@@ -48,13 +51,26 @@ const SMEProfile = () => {
             registrationStatus: sme.status === 'active' ? 'Approved' : sme.status === 'pending' ? 'Pending Review' : 'Rejected',
             profileCompletion: completion, registrationNumber: sme.registration_number || '', smeId: sme.id
           });
-          
-          if (sme.documents_count > 0) {
-            const docs = [];
-            for (let i = 1; i <= sme.documents_count; i++) {
-              docs.push({ name: `Document ${i}`, url: '#', uploadedAt: sme.created_at });
+
+          // Fetch real uploaded documents (with downloadable links)
+          try {
+            const docsRes = await axios.get(`${API_BASE_URL}/api/sme/${sme.id}/documents?t=${timestamp}`);
+            if (docsRes.data?.success) {
+              const docs = (docsRes.data.documents || []).map((d) => ({
+                id: d.id,
+                name: d.file_name,
+                url: `${API_BASE_URL}${d.file_path}`,
+                type: d.file_type,
+                size: d.file_size,
+                uploadedAt: d.created_at,
+              }));
+              setDocuments(docs);
+            } else {
+              setDocuments([]);
             }
-            setDocuments(docs);
+          } catch (e) {
+            // Non-fatal: profile should still load
+            setDocuments([]);
           }
         } else {
           toast.info('No registration found. Please register your business.');
@@ -75,7 +91,7 @@ const SMEProfile = () => {
 
   const handleSave = async () => {
     try {
-      const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+      const API_BASE_URL = getApiBaseUrl();
       const updateData = {
         business_name: profileData.businessName, trading_name: profileData.tradingName,
         industry_sector: profileData.industrySector, sub_sector: profileData.subSector,
@@ -141,7 +157,18 @@ const SMEProfile = () => {
               <div className="form-field"><label>Sub-Sector:</label><input type="text" name="subSector" value={profileData.subSector} onChange={handleChange} disabled={!isEditing} className="form-input" /></div>
             </div>
             <div className="form-row">
-              <div className="form-field"><label>Operation Start Date:</label><input type="date" name="operationStartDate" value={profileData.operationStartDate} onChange={handleChange} disabled={!isEditing} className="form-input" /></div>
+              <div className="form-field">
+                <label>Operation Start Date:</label>
+                <input
+                  type="date"
+                  name="operationStartDate"
+                  value={profileData.operationStartDate || todayIso()}
+                  onChange={handleChange}
+                  disabled={!isEditing}
+                  className="form-input"
+                  max={todayIso()}
+                />
+              </div>
               <div className="form-field"><label>Region:</label><input type="text" name="region" value={profileData.region} onChange={handleChange} disabled={!isEditing} className="form-input" /></div>
             </div>
             <div className="form-row">
@@ -178,7 +205,30 @@ const SMEProfile = () => {
           <div className="form-section">
             <h2 className="section-title">Uploaded Documents</h2>
             <div className="documents-info">
-              {loading ? <p>Loading documents...</p> : documents.length > 0 ? <div className="documents-list-compact"><p>📄 {documents.length} document(s) uploaded</p></div> : <p>No documents uploaded yet</p>}
+              {loading ? (
+                <p>Loading documents...</p>
+              ) : documents.length > 0 ? (
+                <div className="documents-list-compact">
+                  <p>📄 {documents.length} document(s) uploaded</p>
+                  <ul className="documents-ul">
+                    {documents.map((doc) => (
+                      <li key={doc.id || doc.url} className="document-li">
+                        <a href={doc.url} target="_blank" rel="noreferrer">
+                          {doc.name}
+                        </a>
+                        {doc.uploadedAt ? (
+                          <span className="document-meta">
+                            {' '}
+                            — {new Date(doc.uploadedAt).toLocaleDateString()}
+                          </span>
+                        ) : null}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : (
+                <p>No documents uploaded yet</p>
+              )}
             </div>
           </div>
 

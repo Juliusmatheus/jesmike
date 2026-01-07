@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Link icon">
+  <title>Link icon</title>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="28">
+    <!-- Black link -->
+    <path stroke="#111111" d="M94 162l-22 22c-18 18-47 18-65 0s-18-47 0-65l38-38c18-18 47-18 65 0" />
+    <!-- Red link -->
+    <path stroke="#e11d48" d="M162 94l22-22c18-18 47-18 65 0s18 47 0 65l-38 38c-18 18-47 18-65 0" />
+    <!-- Connecting stroke -->
+    <path stroke="#111111" d="M90 166l76-76" />
+  </g>
+</svg>
+

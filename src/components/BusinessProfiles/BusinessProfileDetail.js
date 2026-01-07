@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import './BusinessProfileDetail.css';
+import { getApiBaseUrl } from '../../utils/apiBaseUrl';
 
 const BusinessProfileDetail = () => {
   const { id } = useParams();
@@ -13,7 +14,8 @@ const BusinessProfileDetail = () => {
     const fetchBusinessDetail = async () => {
       try {
         const timestamp = new Date().getTime();
-        const response = await fetch(`http://localhost:5000/api/business/${id}?t=${timestamp}`);
+        const API_BASE_URL = getApiBaseUrl();
+        const response = await fetch(`${API_BASE_URL}/api/business/${id}?t=${timestamp}`);
         
         if (response.ok) {
           const data = await response.json();

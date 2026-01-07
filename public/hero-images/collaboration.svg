@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Collaboration">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#003580"/>
+      <stop offset="1" stop-color="#009639"/>
+    </linearGradient>
+  </defs>
+  <!-- background -->
+  <rect x="8" y="8" width="112" height="112" rx="18" fill="url(#bg)"/>
+  <!-- handshake (simple) -->
+  <path d="M34 70c8-8 18-8 26 0l4 4c4 4 10 4 14 0l16-16c4-4 10-4 14 0l2 2c4 4 4 10 0 14L96 98c-8 8-20 8-28 0l-6-6-6 6c-8 8-20 8-28 0L18 88c-4-4-4-10 0-14l2-2c4-4 10-4 14 0l0 0z" fill="#ffffff" opacity="0.95"/>
+  <!-- center highlight -->
+  <circle cx="64" cy="64" r="22" fill="#ffffff" opacity="0.12"/>
+</svg>
+

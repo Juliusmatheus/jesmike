@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { toast } from 'react-toastify';
 import axios from 'axios';
 import './Login.css';
+import { getApiBaseUrl } from '../../utils/apiBaseUrl';
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -26,10 +27,13 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+      const API_BASE_URL = getApiBaseUrl();
+      // Fallback: read from form fields in case controlled inputs don't update state
+      // (also makes automation/testing more reliable)
+      const submittedEmail = String(e?.target?.elements?.email?.value ?? formData.email ?? '').trim();
 
       // Check if user exists in database
-      const response = await axios.get(`${API_BASE_URL}/api/sme/check/${formData.email}`);
+      const response = await axios.get(`${API_BASE_URL}/api/sme/check/${submittedEmail}`);
 
       if (response.data.exists) {
         const sme = response.data.sme;
@@ -53,9 +57,11 @@ const Login = () => {
 
         toast.success(`Welcome back, ${sme.owner_name}!`);
 
-        // Redirect based on status
-        if (sme.status === 'active') {
+        // Redirect: Dashboard is admin-only
+        if (isAdminUser) {
           navigate('/dashboard');
+        } else if (sme.status === 'active') {
+          navigate('/profile');
         } else if (sme.status === 'pending') {
           toast.info('Your registration is pending approval');
           navigate('/profile');

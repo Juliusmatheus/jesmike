@@ -41,21 +41,43 @@ const About = () => {
           {/* Three Main Feature Cards */}
           <div className="hero-features-grid">
             <div className="hero-feature-card">
-              <div className="hero-feature-icon">📝</div>
+              <div className="hero-feature-icon">
+                <img
+                  src="/hero-images/register-check.svg"
+                  alt="Registration"
+                  className="hero-feature-icon-img"
+                />
+              </div>
               <h3>Register your business in Namibia easily and quickly</h3>
-              <p>Lorem your business cited enterprises, small and medium-sizes SMEs, and or investors for localize don</p>
+              <p>
+                Register your SME online, upload the required documents, and track your application status in one
+                place. This platform helps formalize Namibian businesses and makes it easier to connect with
+                investors and support programmes.
+              </p>
             </div>
 
             <div className="hero-feature-card">
-              <div className="hero-feature-icon">📋</div>
+              <div className="hero-feature-icon">
+                <img src="/hero-images/access.svg" alt="Access" className="hero-feature-icon-img" />
+              </div>
               <h3>Access a wide range of business services</h3>
-              <p>Lorem your business i and est namibia omalt in psal medium-sizes Similar est businesses feuspend et of recol supports for local businesses</p>
+              <p>
+                Discover services and resources that help SMEs grow—such as guidance for registration, business
+                compliance support, and access to investment opportunities. The platform brings key information
+                together so you can make faster, better decisions for your business.
+              </p>
             </div>
 
             <div className="hero-feature-card">
-              <div className="hero-feature-icon">⚙️</div>
+              <div className="hero-feature-icon">
+                <img src="/hero-images/gear.svg" alt="Support" className="hero-feature-icon-img" />
+              </div>
               <h3>Get support from our team of experts</h3>
-              <p>Lorem your business client, tempus maleque vitae interdum. Intergers</p>
+              <p>
+                Need help with registration, document submission, or understanding the approval process? Our support
+                team is available to guide you through each step and connect you with the right information and
+                partners to grow your business.
+              </p>
             </div>
           </div>
         </div>
@@ -103,7 +125,7 @@ const About = () => {
               </p>
             </div>
             <div className="objective-card">
-              <div className="objective-icon">💼</div>
+              <img src="/hero-images/link.svg" alt="Matchmaking" className="objective-image-icon" />
               <h3>MTC</h3>
               <p>
                 Create a matchmaking platform connecting Namibian SMEs with JESMIKE investors,
@@ -127,7 +149,11 @@ const About = () => {
               </p>
             </div>
             <div className="objective-card">
-              <div className="objective-icon">🤝</div>
+              <img
+                src="/hero-images/collaboration.svg"
+                alt="Government Collaboration"
+                className="objective-image-icon"
+              />
               <h3>Government Collaboration</h3>
               <p>
                 Work closely with government ministries, NIPDB, BIPA, and embassies to

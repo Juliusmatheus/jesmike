@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { toast } from 'react-toastify';
-import { useAuth } from '../../context/AuthContext';
 import './BusinessProfiles.css';
+import { COUNTRIES } from '../../utils/countries';
+import { getApiBaseUrl } from '../../utils/apiBaseUrl';
 
 const BusinessProfiles = () => {
-  const { isAdmin } = useAuth();
   const [businesses, setBusinesses] = useState([]);
   const [filteredBusinesses, setFilteredBusinesses] = useState([]);
   const [filters, setFilters] = useState({
@@ -13,14 +12,14 @@ const BusinessProfiles = () => {
     sector: '',
     searchTerm: ''
   });
-  const [deletingId, setDeletingId] = useState(null);
 
   // Fetch businesses from database
   useEffect(() => {
     const fetchBusinesses = async () => {
       try {
         const timestamp = new Date().getTime();
-        const response = await fetch(`http://localhost:5000/api/businesses?t=${timestamp}`);
+        const API_BASE_URL = getApiBaseUrl();
+        const response = await fetch(`${API_BASE_URL}/api/businesses?t=${timestamp}`);
         if (response.ok) {
           const data = await response.json();
           setBusinesses(data);
@@ -64,39 +63,7 @@ const BusinessProfiles = () => {
     });
   };
 
-  const handleDelete = async (businessId, businessName) => {
-    if (!window.confirm(`Are you sure you want to delete "${businessName}"? This action cannot be undone.`)) {
-      return;
-    }
-
-    setDeletingId(businessId);
-
-    try {
-      const response = await fetch(`http://localhost:5000/api/business/${businessId}`, {
-        method: 'DELETE',
-      });
-
-      const data = await response.json();
-
-      if (response.ok && data.success) {
-        toast.success(`${businessName} has been deleted successfully.`);
-        // Remove from local state
-        setBusinesses(businesses.filter(b => b.id !== businessId));
-        setFilteredBusinesses(filteredBusinesses.filter(b => b.id !== businessId));
-      } else {
-        toast.error(data.error || 'Failed to delete business.');
-      }
-    } catch (error) {
-      console.error('Error deleting business:', error);
-      toast.error('Failed to delete business. Please try again.');
-    } finally {
-      setDeletingId(null);
-    }
-  };
-
-  const regions = ['Erongo', 'Hardap', '//Karas', 'Kavango East', 'Kavango West',
-    'Khomas', 'Kunene', 'Ohangwena', 'Omaheke', 'Omusati',
-    'Oshana', 'Oshikoto', 'Otjozondjupa', 'Zambezi'];
+  const regions = COUNTRIES;
 
   const sectors = ['Agriculture', 'Mining', 'Manufacturing', 'Construction',
     'Retail & Wholesale', 'Transportation', 'Hospitality & Tourism',
@@ -198,15 +165,6 @@ const BusinessProfiles = () => {
                 <button className="btn btn-outline btn-sm">
                   Contact
                 </button>
-                {isAdmin && (
-                  <button 
-                    className="btn btn-danger btn-sm"
-                    onClick={() => handleDelete(business.id, business.businessName)}
-                    disabled={deletingId === business.id}
-                  >
-                    {deletingId === business.id ? 'Deleting...' : '🗑️ Delete'}
-                  </button>
-                )}
               </div>
             </div>
           ))}

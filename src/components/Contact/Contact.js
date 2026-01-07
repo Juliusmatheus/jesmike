@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import './Contact.css';
+import GoogleLiveMap from './GoogleLiveMap';
+import { getApiBaseUrl } from '../../utils/apiBaseUrl';
 
 const Contact = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -41,7 +43,7 @@ const Contact = () => {
     setIsSubmitting(true);
 
     try {
-      const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+      const API_BASE_URL = getApiBaseUrl();
 
       const response = await fetch(`${API_BASE_URL}/api/contact`, {
         method: 'POST',
@@ -117,15 +119,14 @@ const Contact = () => {
                 <div className="info-icon">📧</div>
                 <h3>Email</h3>
                 <p>
-                  <a href="mailto:info@smebrics.na">info@</a><br />
-                  <a href="mailto:support@smebrics.na">support@</a>
+                  <a href="mailto:jessymike@gmail.com">jessyymike@gmail.com</a><br />
+                  
                 </p>
               </div>
               <div className="info-card">
                 <div className="info-icon">📞</div>
                 <h3>Phone</h3>
                 <p>
-                  +264 61 <br />
                   +264 85 776 7727
                 </p>
               </div>
@@ -228,11 +229,7 @@ const Contact = () => {
         <section className="map-section">
           <h2>Find Us</h2>
           <div className="map-container">
-            <div className="map-placeholder">
-              <div className="map-icon">🗺️</div>
-              <p>Windhoek, Namibia</p>
-              <p className="map-note">Interactive map will be displayed here</p>
-            </div>
+            <GoogleLiveMap />
           </div>
         </section>
       </div>
