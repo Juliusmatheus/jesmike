@@ -74,13 +74,34 @@ app.use((err, req, res, next) => {
 });
 
 // PostgreSQL connection
-const pool = new Pool({
-  user: process.env.DB_USER || 'jsmike',
-  host: process.env.DB_HOST || 'localhost',
-  database: process.env.DB_NAME || 'postgres',
-  password: process.env.DB_PASSWORD || 'root',
-  port: process.env.DB_PORT || 5432,
-});
+// Supports Neon/hosted Postgres via DATABASE_URL (recommended on Vercel).
+function getPoolConfig() {
+  const connectionString = process.env.DATABASE_URL && String(process.env.DATABASE_URL).trim();
+
+  // Neon (and most hosted Postgres) require SSL.
+  const sslEnabled =
+    String(process.env.DB_SSL || '').toLowerCase() === 'true' ||
+    Boolean(process.env.VERCEL) ||
+    (connectionString && !connectionString.includes('localhost') && !connectionString.includes('127.0.0.1'));
+
+  if (connectionString) {
+    return {
+      connectionString,
+      ssl: sslEnabled ? { rejectUnauthorized: false } : undefined,
+    };
+  }
+
+  return {
+    user: process.env.DB_USER || 'jsmike',
+    host: process.env.DB_HOST || 'localhost',
+    database: process.env.DB_NAME || 'postgres',
+    password: process.env.DB_PASSWORD || 'root',
+    port: process.env.DB_PORT || 5432,
+    ssl: sslEnabled ? { rejectUnauthorized: false } : undefined,
+  };
+}
+
+const pool = new Pool(getPoolConfig());
 
 async function pickExistingColumn(tableName, candidates) {
   for (const col of candidates) {
