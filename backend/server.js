@@ -11,21 +11,25 @@ require('dotenv').config();
 const app = express();
 const requestedPort = Number(process.env.PORT) || 5002;
 
+// Detect Environment
+const isVercel = Boolean(process.env.VERCEL);
+const isNetlify = Boolean(process.env.NETLIFY) || Boolean(process.env.CONTEXT);
+const isServerless = isVercel || isNetlify;
+
 // Middleware
 app.use(cors());
 app.use(express.json());
 
 // Normalize path for Netlify/Vercel (ensure /api prefix exists for router)
 app.use((req, res, next) => {
-  if (!req.url.startsWith('/api')) {
+  if (!req.url.startsWith('/api') && req.url !== '/' && req.url !== '') {
     req.url = `/api${req.url.startsWith('/') ? '' : '/'}${req.url}`;
   }
   next();
 });
-// NOTE: On Vercel, filesystem is ephemeral. Uploaded files will NOT persist between invocations.
-// For production-grade uploads, use object storage (S3/Supabase storage/etc).
-const isVercel = Boolean(process.env.VERCEL);
-const uploadDir = isVercel ? path.join(os.tmpdir(), 'uploads') : path.join(__dirname, 'uploads');
+
+// File Upload Configuration
+const uploadDir = isServerless ? path.join(os.tmpdir(), 'uploads') : path.join(__dirname, 'uploads');
 app.use('/uploads', express.static(uploadDir));
 
 // Ensure uploads directory exists
