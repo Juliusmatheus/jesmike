@@ -162,9 +162,7 @@ async function pickExistingColumn(tableName, candidates) {
 
 // Ensure required tables exist (keeps local dev setup smooth)
 async function ensureTables() {
-  // On Serverless, we skip the heavy table check to prevent timeouts.
-  // We assume the DB is already set up.
-  if (isServerless) return;
+  // On Serverless, we run this but we make it very fast by using IF NOT EXISTS
   try {
     // Minimal schema needed by the API (safe to run repeatedly)
     await pool.query(`
@@ -375,6 +373,9 @@ function getSmtpTransporter() {
 // Statistics API endpoints
 app.get('/api/statistics/summary', async (req, res) => {
   try {
+    // Force a table check before running stats
+    await ensureTables();
+    
     const totalSMEsQuery = 'SELECT COUNT(*) as count FROM smes';
     const totalInvestorsQuery = 'SELECT COUNT(*) as count FROM investors';
     const totalDealsQuery = 'SELECT COUNT(*) as count FROM investment_deals';
@@ -1009,6 +1010,10 @@ app.post('/api/sme/register', upload.array('documents'), async (req, res) => {
   let client;
   try {
     const currentPool = getPool();
+    
+    // Force a table check before registering
+    await ensureTables();
+    
     client = await currentPool.connect();
     await client.query('BEGIN');
 
