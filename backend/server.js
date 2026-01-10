@@ -13,7 +13,7 @@ const requestedPort = Number(process.env.PORT) || 5002;
 
 // Detect Environment
 const isVercel = Boolean(process.env.VERCEL);
-const isNetlify = Boolean(process.env.NETLIFY) || Boolean(process.env.CONTEXT);
+const isNetlify = Boolean(process.env.NETLIFY) || Boolean(process.env.CONTEXT) || Boolean(process.env.LAMBDA_TASK_ROOT);
 const isServerless = isVercel || isNetlify;
 
 // Middleware
