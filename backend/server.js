@@ -164,8 +164,43 @@ async function pickExistingColumn(tableName, candidates) {
 async function ensureTables() {
   // On Serverless, we run this but we make it very fast by using IF NOT EXISTS
   try {
+    const currentPool = getPool();
     // Minimal schema needed by the API (safe to run repeatedly)
-    await pool.query(`
+    await currentPool.query(`
+      CREATE TABLE IF NOT EXISTS smes (
+        id SERIAL PRIMARY KEY,
+        business_name VARCHAR(255) NOT NULL,
+        trading_name VARCHAR(255),
+        registration_number VARCHAR(100),
+        industry_sector VARCHAR(100) NOT NULL,
+        sub_sector VARCHAR(100),
+        established_date DATE,
+        address TEXT NOT NULL,
+        region VARCHAR(100) NOT NULL,
+        city VARCHAR(100),
+        employees INTEGER DEFAULT 0,
+        annual_turnover_range VARCHAR(100),
+        business_type VARCHAR(100),
+        owner_name VARCHAR(255) NOT NULL,
+        owner_id VARCHAR(100),
+        owner_passport VARCHAR(100),
+        owner_gender CHAR(1),
+        owner_age INTEGER,
+        owner_address TEXT,
+        nationality VARCHAR(100),
+        years_experience INTEGER DEFAULT 0,
+        email VARCHAR(255) UNIQUE NOT NULL,
+        phone VARCHAR(50) NOT NULL,
+        status VARCHAR(50) DEFAULT 'pending',
+        documents_count INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        deleted_at TIMESTAMP NULL,
+        deleted_prev_status VARCHAR(50) NULL
+      );
+    `);
+
+    await currentPool.query(`
       CREATE TABLE IF NOT EXISTS investors (
         id SERIAL PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
@@ -183,7 +218,7 @@ async function ensureTables() {
       );
     `);
 
-    await pool.query(`
+    await currentPool.query(`
       CREATE TABLE IF NOT EXISTS investment_deals (
         id SERIAL PRIMARY KEY,
         sme_id INTEGER REFERENCES smes(id),
@@ -199,7 +234,7 @@ async function ensureTables() {
       );
     `);
 
-    await pool.query(`
+    await currentPool.query(`
       CREATE TABLE IF NOT EXISTS investment_opportunities (
         id SERIAL PRIMARY KEY,
         sme_id INTEGER REFERENCES smes(id),
@@ -217,7 +252,7 @@ async function ensureTables() {
     `);
 
     // Admin-managed opportunities shown on the public "Investments" page
-    await pool.query(`
+    await currentPool.query(`
       CREATE TABLE IF NOT EXISTS admin_investment_opportunities (
         id SERIAL PRIMARY KEY,
         title TEXT NOT NULL,
@@ -235,10 +270,10 @@ async function ensureTables() {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
-    await pool.query(`CREATE INDEX IF NOT EXISTS idx_admin_investment_opportunities_active ON admin_investment_opportunities(is_active);`);
+    await currentPool.query(`CREATE INDEX IF NOT EXISTS idx_admin_investment_opportunities_active ON admin_investment_opportunities(is_active);`);
 
     // Admin-managed JESMIKE projects (shown/managed in Admin Panel)
-    await pool.query(`
+    await currentPool.query(`
       CREATE TABLE IF NOT EXISTS admin_projects (
         id SERIAL PRIMARY KEY,
         title TEXT NOT NULL,
@@ -255,9 +290,9 @@ async function ensureTables() {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
-    await pool.query(`CREATE INDEX IF NOT EXISTS idx_admin_projects_active ON admin_projects(is_active);`);
+    await currentPool.query(`CREATE INDEX IF NOT EXISTS idx_admin_projects_active ON admin_projects(is_active);`);
 
-    await pool.query(`
+    await currentPool.query(`
       CREATE TABLE IF NOT EXISTS admin_project_files (
         id SERIAL PRIMARY KEY,
         project_id INTEGER NOT NULL REFERENCES admin_projects(id) ON DELETE CASCADE,
@@ -268,10 +303,10 @@ async function ensureTables() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
-    await pool.query(`CREATE INDEX IF NOT EXISTS idx_admin_project_files_project_id ON admin_project_files(project_id);`);
+    await currentPool.query(`CREATE INDEX IF NOT EXISTS idx_admin_project_files_project_id ON admin_project_files(project_id);`);
 
     // Users expressing interest in an opportunity (admin-managed or SME-submitted)
-    await pool.query(`
+    await currentPool.query(`
       CREATE TABLE IF NOT EXISTS investment_interests (
         id SERIAL PRIMARY KEY,
         opportunity_source VARCHAR(20) NOT NULL, -- 'admin' | 'sme'
@@ -284,10 +319,10 @@ async function ensureTables() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
-    await pool.query(`CREATE INDEX IF NOT EXISTS idx_investment_interests_opp ON investment_interests(opportunity_source, opportunity_id);`);
-    await pool.query(`CREATE INDEX IF NOT EXISTS idx_investment_interests_status ON investment_interests(status);`);
+    await currentPool.query(`CREATE INDEX IF NOT EXISTS idx_investment_interests_opp ON investment_interests(opportunity_source, opportunity_id);`);
+    await currentPool.query(`CREATE INDEX IF NOT EXISTS idx_investment_interests_status ON investment_interests(status);`);
 
-    await pool.query(`
+    await currentPool.query(`
       CREATE TABLE IF NOT EXISTS sme_documents (
         id SERIAL PRIMARY KEY,
         sme_id INTEGER REFERENCES smes(id) ON DELETE CASCADE,
@@ -298,17 +333,17 @@ async function ensureTables() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
-    await pool.query(`CREATE INDEX IF NOT EXISTS idx_sme_documents_sme_id ON sme_documents(sme_id);`);
-    await pool.query(`CREATE INDEX IF NOT EXISTS idx_smes_region ON smes(region);`);
-    await pool.query(`CREATE INDEX IF NOT EXISTS idx_smes_industry ON smes(industry_sector);`);
+    await currentPool.query(`CREATE INDEX IF NOT EXISTS idx_sme_documents_sme_id ON sme_documents(sme_id);`);
+    await currentPool.query(`CREATE INDEX IF NOT EXISTS idx_smes_region ON smes(region);`);
+    await currentPool.query(`CREATE INDEX IF NOT EXISTS idx_smes_industry ON smes(industry_sector);`);
     // Some DBs use business_id instead of sme_id for investment_deals
     const investmentDealsBizCol = await pickExistingColumn('investment_deals', ['sme_id', 'business_id']);
     if (investmentDealsBizCol) {
-      await pool.query(`CREATE INDEX IF NOT EXISTS idx_investment_deals_business_fk ON investment_deals(${investmentDealsBizCol});`);
+      await currentPool.query(`CREATE INDEX IF NOT EXISTS idx_investment_deals_business_fk ON investment_deals(${investmentDealsBizCol});`);
     }
-    await pool.query(`CREATE INDEX IF NOT EXISTS idx_investment_deals_investor_id ON investment_deals(investor_id);`);
+    await currentPool.query(`CREATE INDEX IF NOT EXISTS idx_investment_deals_investor_id ON investment_deals(investor_id);`);
 
-    await pool.query(`
+    await currentPool.query(`
       CREATE TABLE IF NOT EXISTS contact_messages (
         id SERIAL PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
@@ -321,10 +356,10 @@ async function ensureTables() {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
-    await pool.query(`CREATE INDEX IF NOT EXISTS idx_contact_messages_status ON contact_messages(status);`);
+    await currentPool.query(`CREATE INDEX IF NOT EXISTS idx_contact_messages_status ON contact_messages(status);`);
 
     // Admin-managed reference data
-    await pool.query(`
+    await currentPool.query(`
       CREATE TABLE IF NOT EXISTS business_types (
         type_id SERIAL PRIMARY KEY,
         name VARCHAR(255) UNIQUE NOT NULL,
@@ -335,7 +370,7 @@ async function ensureTables() {
       );
     `);
 
-    await pool.query(`
+    await currentPool.query(`
       CREATE TABLE IF NOT EXISTS system_config (
         key TEXT PRIMARY KEY,
         value TEXT,
@@ -344,14 +379,17 @@ async function ensureTables() {
     `);
 
     // Soft-delete support for smes (table already exists in most setups)
-    await pool.query(`ALTER TABLE smes ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP NULL;`);
-    await pool.query(`ALTER TABLE smes ADD COLUMN IF NOT EXISTS deleted_prev_status VARCHAR(50) NULL;`);
-    await pool.query(`CREATE INDEX IF NOT EXISTS idx_smes_deleted_at ON smes(deleted_at);`);
+    await currentPool.query(`ALTER TABLE smes ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP NULL;`);
+    await currentPool.query(`ALTER TABLE smes ADD COLUMN IF NOT EXISTS deleted_prev_status VARCHAR(50) NULL;`);
+    await currentPool.query(`CREATE INDEX IF NOT EXISTS idx_smes_deleted_at ON smes(deleted_at);`);
   } catch (e) {
     console.error('Error ensuring tables:', e);
   }
 }
-ensureTables();
+// Do not call ensureTables() at top level on serverless to prevent startup timeouts
+if (!isServerless) {
+  ensureTables();
+}
 
 function getSmtpTransporter() {
   const host = process.env.SMTP_HOST;
