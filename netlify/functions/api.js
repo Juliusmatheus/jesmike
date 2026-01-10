@@ -1,20 +1,23 @@
 const serverless = require('serverless-http');
 const express = require('express');
+const path = require('path');
 
 let app;
 try {
-  // Try to load the backend
-  app = require('../../backend/server');
+  // Use absolute path to ensure the bundler and runtime find it correctly
+  const serverPath = path.resolve(__dirname, '../../backend/server');
+  app = require(serverPath);
 } catch (err) {
-  console.error('CRITICAL ERROR:', err);
+  console.error('CRITICAL ERROR LOADING BACKEND:', err);
   
-  // Create a "Backup" app to show you the error message on the screen
   app = express();
   app.all('*', (req, res) => {
+    // Put the error message directly in the "error" field so it shows in the UI toast
     res.status(500).json({ 
       success: false,
-      error: 'Backend Error: ' + err.message, // This will show in the red box
-      details: err.stack
+      error: `Backend Load Error: ${err.message}`,
+      path: path.resolve(__dirname, '../../backend/server'),
+      stack: err.stack
     });
   });
 }
