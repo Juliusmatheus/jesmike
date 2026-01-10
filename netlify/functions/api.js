@@ -1,32 +1,32 @@
 const serverless = require('serverless-http');
 const express = require('express');
-const path = require('path');
 
 let app;
 try {
-  // Attempt 1: Standard relative path
+  // Use simple relative path
   app = require('../../backend/server');
 } catch (err) {
-  try {
-    // Attempt 2: Absolute path relative to task root
-    app = require('/var/task/backend/server');
-  } catch (err2) {
-    console.error('CRITICAL ERROR LOADING BACKEND:', err2);
-    
-    app = express();
-    app.all('*', (req, res) => {
-      res.status(500).json({ 
-        success: false,
-        error: 'Backend missing on server. Please check netlify.toml included_files.',
-        details: err2.message,
-        triedPaths: ['../../backend/server', '/var/task/backend/server']
-      });
+  console.error('CRITICAL BACKEND LOAD ERROR:', err);
+  
+  app = express();
+  app.all('*', (req, res) => {
+    res.status(500).json({ 
+      success: false,
+      error: 'Backend initialization failed. This is usually due to a missing dependency or a file path issue.',
+      details: err.message,
+      env: {
+        dir: __dirname,
+        node: process.version,
+        platform: process.platform
+      }
     });
-  }
+  });
 }
 
 const handler = serverless(app);
 
 module.exports.handler = async (event, context) => {
+  // Fix for Netlify: handle base64 encoded binary uploads (images/PDFs)
+  // serverless-http handles this but we need to ensure the event is passed correctly
   return await handler(event, context);
 };

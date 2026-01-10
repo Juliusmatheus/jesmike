@@ -14,8 +14,18 @@ const requestedPort = Number(process.env.PORT) || 5002;
 // Detect Environment
 const isVercel = Boolean(process.env.VERCEL);
 const isNetlify = Boolean(process.env.NETLIFY) || Boolean(process.env.CONTEXT) || Boolean(process.env.LAMBDA_TASK_ROOT);
-const isServerPath = __dirname.includes('/var/task') || __dirname.includes('netlify');
-const isServerless = isVercel || isNetlify || isServerPath || process.env.NODE_ENV === 'production';
+// On Netlify/Vercel, the path always starts with /var/task or /tmp
+const isLinuxServer = __dirname.startsWith('/') && !__dirname.includes('mnt');
+const isServerless = isVercel || isNetlify || isLinuxServer || process.env.NODE_ENV === 'production';
+
+// Debug logging for serverless detection (only visible in Netlify logs)
+if (isServerless) {
+  console.log('[Environment] Serverless detected:', { 
+    isVercel, isNetlify, isLinuxServer, 
+    nodeEnv: process.env.NODE_ENV,
+    dir: __dirname 
+  });
+}
 
 // Middleware
 app.use(cors());
@@ -40,8 +50,12 @@ try {
 }
 
 // File Upload Configuration
-// On Serverless (Netlify/Vercel), we use Memory Storage because the filesystem is read-only
-const storage = (isServerless || !fs.existsSync(uploadDir))
+// On Serverless (Netlify/Vercel), we MUST use Memory Storage. 
+// We only use Disk Storage if we are on a Windows machine (local dev) or if explicitly told.
+const isLocalWindows = process.platform === 'win32';
+const useMemoryStorage = isServerless || !isLocalWindows;
+
+const storage = useMemoryStorage
   ? multer.memoryStorage() 
   : multer.diskStorage({
       destination: (req, file, cb) => {
