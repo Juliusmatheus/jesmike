@@ -14,6 +14,14 @@ const requestedPort = Number(process.env.PORT) || 5002;
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+// Normalize path for Netlify/Vercel (ensure /api prefix exists for router)
+app.use((req, res, next) => {
+  if (!req.url.startsWith('/api')) {
+    req.url = `/api${req.url.startsWith('/') ? '' : '/'}${req.url}`;
+  }
+  next();
+});
 // NOTE: On Vercel, filesystem is ephemeral. Uploaded files will NOT persist between invocations.
 // For production-grade uploads, use object storage (S3/Supabase storage/etc).
 const isVercel = Boolean(process.env.VERCEL);
