@@ -37,22 +37,24 @@ if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 
-// Multer storage configuration
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
+// File Upload Configuration
+// On Serverless (Netlify/Vercel), we use Memory Storage because the filesystem is read-only
+const storage = isServerless 
+  ? multer.memoryStorage() 
+  : multer.diskStorage({
+      destination: (req, file, cb) => {
+        cb(null, uploadDir);
+      },
+      filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+        cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+      }
+    });
 
 const upload = multer({ 
   storage: storage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+  limits: { fileSize: 5 * 1024 * 1024 }, // Reduced to 5MB for Netlify stability
   fileFilter: (req, file, cb) => {
-    // Allow common proof documents: images + PDF + Word docs
     const allowedTypes = /jpeg|jpg|png|pdf|doc|docx/;
     const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
     const mimetype = allowedTypes.test(file.mimetype);
@@ -94,7 +96,7 @@ function getPoolConfig() {
   // Neon (and most hosted Postgres) require SSL.
   const sslEnabled =
     String(process.env.DB_SSL || '').toLowerCase() === 'true' ||
-    Boolean(process.env.VERCEL) ||
+    isServerless ||
     (connectionString && !connectionString.includes('localhost') && !connectionString.includes('127.0.0.1'));
 
   if (connectionString) {
@@ -1126,15 +1128,26 @@ app.post('/api/sme/register', upload.array('documents'), async (req, res) => {
           ) VALUES ($1, $2, $3, $4, $5)
         `;
         try {
-          // Store a public path (served by app.use('/uploads', express.static(...)))
-          const publicPath = `/uploads/${path.basename(file.path)}`;
-          await client.query(docQuery, [
-            smeId,
-            file.originalname,
-            publicPath,
-            file.mimetype,
-            file.size
-          ]);
+          if (isServerless) {
+            // On Netlify, we don't save files to disk, we just record that they were received.
+            // For production, you should upload file.buffer to Cloudinary/S3 here.
+            await client.query(docQuery, [
+              smeId,
+              file.originalname,
+              'memory-storage',
+              file.mimetype,
+              file.size
+            ]);
+          } else {
+            const publicPath = `/uploads/${path.basename(file.path)}`;
+            await client.query(docQuery, [
+              smeId,
+              file.originalname,
+              publicPath,
+              file.mimetype,
+              file.size
+            ]);
+          }
         } catch (docError) {
           console.error('Error saving document info to database:', docError);
         }
