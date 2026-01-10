@@ -162,229 +162,104 @@ async function pickExistingColumn(tableName, candidates) {
 
 // Ensure required tables exist (keeps local dev setup smooth)
 async function ensureTables() {
-  // On Serverless, we run this but we make it very fast by using IF NOT EXISTS
-  try {
-    const currentPool = getPool();
-    // Minimal schema needed by the API (safe to run repeatedly)
-    await currentPool.query(`
-      CREATE TABLE IF NOT EXISTS smes (
-        id SERIAL PRIMARY KEY,
-        business_name VARCHAR(255) NOT NULL,
-        trading_name VARCHAR(255),
-        registration_number VARCHAR(100),
-        industry_sector VARCHAR(100) NOT NULL,
-        sub_sector VARCHAR(100),
-        established_date DATE,
-        address TEXT NOT NULL,
-        region VARCHAR(100) NOT NULL,
-        city VARCHAR(100),
-        employees INTEGER DEFAULT 0,
-        annual_turnover_range VARCHAR(100),
-        business_type VARCHAR(100),
-        owner_name VARCHAR(255) NOT NULL,
-        owner_id VARCHAR(100),
-        owner_passport VARCHAR(100),
-        owner_gender CHAR(1),
-        owner_age INTEGER,
-        owner_address TEXT,
-        nationality VARCHAR(100),
-        years_experience INTEGER DEFAULT 0,
-        email VARCHAR(255) UNIQUE NOT NULL,
-        phone VARCHAR(50) NOT NULL,
-        status VARCHAR(50) DEFAULT 'pending',
-        documents_count INTEGER DEFAULT 0,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        deleted_at TIMESTAMP NULL,
-        deleted_prev_status VARCHAR(50) NULL
-      );
-    `);
+  const currentPool = getPool();
+  // Minimal schema needed by the API (safe to run repeatedly)
+  await currentPool.query(`
+    CREATE TABLE IF NOT EXISTS smes (
+      id SERIAL PRIMARY KEY,
+      business_name VARCHAR(255) NOT NULL,
+      trading_name VARCHAR(255),
+      registration_number VARCHAR(100),
+      industry_sector VARCHAR(100) NOT NULL,
+      sub_sector VARCHAR(100),
+      established_date DATE,
+      address TEXT NOT NULL,
+      region VARCHAR(100) NOT NULL,
+      city VARCHAR(100),
+      employees INTEGER DEFAULT 0,
+      annual_turnover_range VARCHAR(100),
+      business_type VARCHAR(100),
+      owner_name VARCHAR(255) NOT NULL,
+      owner_id VARCHAR(100),
+      owner_passport VARCHAR(100),
+      owner_gender CHAR(1),
+      owner_age INTEGER,
+      owner_address TEXT,
+      nationality VARCHAR(100),
+      years_experience INTEGER DEFAULT 0,
+      email VARCHAR(255) UNIQUE NOT NULL,
+      phone VARCHAR(50) NOT NULL,
+      status VARCHAR(50) DEFAULT 'pending',
+      documents_count INTEGER DEFAULT 0,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      deleted_at TIMESTAMP NULL,
+      deleted_prev_status VARCHAR(50) NULL
+    );
+  `);
 
-    await currentPool.query(`
-      CREATE TABLE IF NOT EXISTS investors (
-        id SERIAL PRIMARY KEY,
-        name VARCHAR(255) NOT NULL,
-        type VARCHAR(100) NOT NULL,
-        email VARCHAR(255) UNIQUE NOT NULL,
-        phone VARCHAR(20),
-        region VARCHAR(100),
-        investment_focus TEXT,
-        min_investment NUMERIC(15,2),
-        max_investment NUMERIC(15,2),
-        sectors_of_interest TEXT[],
-        status VARCHAR(50) DEFAULT 'active',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
+  await currentPool.query(`
+    CREATE TABLE IF NOT EXISTS investors (
+      id SERIAL PRIMARY KEY,
+      name VARCHAR(255) NOT NULL,
+      type VARCHAR(100) NOT NULL,
+      email VARCHAR(255) UNIQUE NOT NULL,
+      phone VARCHAR(20),
+      region VARCHAR(100),
+      investment_focus TEXT,
+      min_investment NUMERIC(15,2),
+      max_investment NUMERIC(15,2),
+      sectors_of_interest TEXT[],
+      status VARCHAR(50) DEFAULT 'active',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
 
-    await currentPool.query(`
-      CREATE TABLE IF NOT EXISTS investment_deals (
-        id SERIAL PRIMARY KEY,
-        sme_id INTEGER REFERENCES smes(id),
-        investor_id INTEGER REFERENCES investors(id),
-        investment_amount NUMERIC(15,2) NOT NULL,
-        equity_percentage NUMERIC(5,2),
-        deal_type VARCHAR(100),
-        status VARCHAR(50) DEFAULT 'pending',
-        deal_date DATE,
-        terms TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
+  await currentPool.query(`
+    CREATE TABLE IF NOT EXISTS investment_deals (
+      id SERIAL PRIMARY KEY,
+      sme_id INTEGER REFERENCES smes(id),
+      investor_id INTEGER REFERENCES investors(id),
+      investment_amount NUMERIC(15,2) NOT NULL,
+      equity_percentage NUMERIC(5,2),
+      deal_type VARCHAR(100),
+      status VARCHAR(50) DEFAULT 'pending',
+      deal_date DATE,
+      terms TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
 
-    await currentPool.query(`
-      CREATE TABLE IF NOT EXISTS investment_opportunities (
-        id SERIAL PRIMARY KEY,
-        sme_id INTEGER REFERENCES smes(id),
-        title VARCHAR(255) NOT NULL,
-        description TEXT NOT NULL,
-        funding_required NUMERIC(15,2) NOT NULL,
-        equity_offered NUMERIC(5,2),
-        use_of_funds TEXT,
-        expected_roi NUMERIC(5,2),
-        investment_timeline VARCHAR(100),
-        status VARCHAR(50) DEFAULT 'open',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
+  await currentPool.query(`
+    CREATE TABLE IF NOT EXISTS investment_opportunities (
+      id SERIAL PRIMARY KEY,
+      sme_id INTEGER REFERENCES smes(id),
+      title VARCHAR(255) NOT NULL,
+      description TEXT NOT NULL,
+      funding_required NUMERIC(15,2) NOT NULL,
+      equity_offered NUMERIC(5,2),
+      use_of_funds TEXT,
+      expected_roi NUMERIC(5,2),
+      investment_timeline VARCHAR(100),
+      status VARCHAR(50) DEFAULT 'open',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
 
-    // Admin-managed opportunities shown on the public "Investments" page
-    await currentPool.query(`
-      CREATE TABLE IF NOT EXISTS admin_investment_opportunities (
-        id SERIAL PRIMARY KEY,
-        title TEXT NOT NULL,
-        description TEXT NOT NULL,
-        sector TEXT,
-        sub_industry TEXT,
-        country TEXT,
-        stage TEXT,
-        investment_range TEXT,
-        requirements TEXT,
-        contact TEXT,
-        image_key TEXT,
-        is_active BOOLEAN DEFAULT true,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
-    await currentPool.query(`CREATE INDEX IF NOT EXISTS idx_admin_investment_opportunities_active ON admin_investment_opportunities(is_active);`);
-
-    // Admin-managed JESMIKE projects (shown/managed in Admin Panel)
-    await currentPool.query(`
-      CREATE TABLE IF NOT EXISTS admin_projects (
-        id SERIAL PRIMARY KEY,
-        title TEXT NOT NULL,
-        description TEXT NOT NULL,
-        category TEXT,
-        country TEXT,
-        stage TEXT,
-        start_date DATE,
-        end_date DATE,
-        budget TEXT,
-        contact TEXT,
-        is_active BOOLEAN DEFAULT true,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
-    await currentPool.query(`CREATE INDEX IF NOT EXISTS idx_admin_projects_active ON admin_projects(is_active);`);
-
-    await currentPool.query(`
-      CREATE TABLE IF NOT EXISTS admin_project_files (
-        id SERIAL PRIMARY KEY,
-        project_id INTEGER NOT NULL REFERENCES admin_projects(id) ON DELETE CASCADE,
-        file_name TEXT NOT NULL,
-        file_path TEXT NOT NULL,
-        file_type TEXT,
-        file_size INTEGER,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
-    await currentPool.query(`CREATE INDEX IF NOT EXISTS idx_admin_project_files_project_id ON admin_project_files(project_id);`);
-
-    // Users expressing interest in an opportunity (admin-managed or SME-submitted)
-    await currentPool.query(`
-      CREATE TABLE IF NOT EXISTS investment_interests (
-        id SERIAL PRIMARY KEY,
-        opportunity_source VARCHAR(20) NOT NULL, -- 'admin' | 'sme'
-        opportunity_id INTEGER NOT NULL,
-        name TEXT,
-        email TEXT,
-        phone TEXT,
-        message TEXT,
-        status VARCHAR(20) DEFAULT 'new',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
-    await currentPool.query(`CREATE INDEX IF NOT EXISTS idx_investment_interests_opp ON investment_interests(opportunity_source, opportunity_id);`);
-    await currentPool.query(`CREATE INDEX IF NOT EXISTS idx_investment_interests_status ON investment_interests(status);`);
-
-    await currentPool.query(`
-      CREATE TABLE IF NOT EXISTS sme_documents (
-        id SERIAL PRIMARY KEY,
-        sme_id INTEGER REFERENCES smes(id) ON DELETE CASCADE,
-        file_name TEXT NOT NULL,
-        file_path TEXT NOT NULL,
-        file_type TEXT,
-        file_size BIGINT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
-    await currentPool.query(`CREATE INDEX IF NOT EXISTS idx_sme_documents_sme_id ON sme_documents(sme_id);`);
-    await currentPool.query(`CREATE INDEX IF NOT EXISTS idx_smes_region ON smes(region);`);
-    await currentPool.query(`CREATE INDEX IF NOT EXISTS idx_smes_industry ON smes(industry_sector);`);
-    // Some DBs use business_id instead of sme_id for investment_deals
-    const investmentDealsBizCol = await pickExistingColumn('investment_deals', ['sme_id', 'business_id']);
-    if (investmentDealsBizCol) {
-      await currentPool.query(`CREATE INDEX IF NOT EXISTS idx_investment_deals_business_fk ON investment_deals(${investmentDealsBizCol});`);
-    }
-    await currentPool.query(`CREATE INDEX IF NOT EXISTS idx_investment_deals_investor_id ON investment_deals(investor_id);`);
-
-    await currentPool.query(`
-      CREATE TABLE IF NOT EXISTS contact_messages (
-        id SERIAL PRIMARY KEY,
-        name VARCHAR(255) NOT NULL,
-        email VARCHAR(255) NOT NULL,
-        phone VARCHAR(50),
-        subject VARCHAR(255) NOT NULL,
-        message TEXT NOT NULL,
-        status VARCHAR(50) DEFAULT 'new',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
-    await currentPool.query(`CREATE INDEX IF NOT EXISTS idx_contact_messages_status ON contact_messages(status);`);
-
-    // Admin-managed reference data
-    await currentPool.query(`
-      CREATE TABLE IF NOT EXISTS business_types (
-        type_id SERIAL PRIMARY KEY,
-        name VARCHAR(255) UNIQUE NOT NULL,
-        description TEXT,
-        is_active BOOLEAN DEFAULT true,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
-
-    await currentPool.query(`
-      CREATE TABLE IF NOT EXISTS system_config (
-        key TEXT PRIMARY KEY,
-        value TEXT,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
-
-    // Soft-delete support for smes (table already exists in most setups)
-    await currentPool.query(`ALTER TABLE smes ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP NULL;`);
-    await currentPool.query(`ALTER TABLE smes ADD COLUMN IF NOT EXISTS deleted_prev_status VARCHAR(50) NULL;`);
-    await currentPool.query(`CREATE INDEX IF NOT EXISTS idx_smes_deleted_at ON smes(deleted_at);`);
-  } catch (e) {
-    console.error('Error ensuring tables:', e);
-  }
+  await currentPool.query(`
+    CREATE TABLE IF NOT EXISTS sme_documents (
+      id SERIAL PRIMARY KEY,
+      sme_id INTEGER REFERENCES smes(id) ON DELETE CASCADE,
+      file_name TEXT NOT NULL,
+      file_path TEXT NOT NULL,
+      file_type TEXT,
+      file_size BIGINT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
 }
 // Do not call ensureTables() at top level on serverless to prevent startup timeouts
 if (!isServerless) {
@@ -1049,8 +924,16 @@ app.post('/api/sme/register', upload.array('documents'), async (req, res) => {
   try {
     const currentPool = getPool();
     
-    // Force a table check before registering
-    await ensureTables();
+    // Force a table check and wait for it. If it fails, catch it specifically.
+    try {
+      await ensureTables();
+    } catch (tableErr) {
+      console.error('CRITICAL: Table creation failed:', tableErr);
+      return res.status(500).json({ 
+        success: false, 
+        error: 'Database Setup Error: ' + tableErr.message 
+      });
+    }
     
     client = await currentPool.connect();
     await client.query('BEGIN');
