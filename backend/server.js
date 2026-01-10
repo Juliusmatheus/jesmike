@@ -12,17 +12,13 @@ const app = express();
 const requestedPort = Number(process.env.PORT) || 5002;
 
 // Detect Environment
-const isVercel = Boolean(process.env.VERCEL);
-const isNetlify = Boolean(process.env.NETLIFY) || Boolean(process.env.CONTEXT) || Boolean(process.env.LAMBDA_TASK_ROOT);
-// On Netlify/Vercel, the path always starts with /var/task or /tmp
-const isLinuxServer = __dirname.startsWith('/') && !__dirname.includes('mnt');
-const isServerless = isVercel || isNetlify || isLinuxServer || process.env.NODE_ENV === 'production';
+const isLocalWindows = process.platform === 'win32';
+const isServerless = !isLocalWindows || Boolean(process.env.NETLIFY) || Boolean(process.env.VERCEL);
 
-// Debug logging for serverless detection (only visible in Netlify logs)
-if (isServerless) {
-  console.log('[Environment] Serverless detected:', { 
-    isVercel, isNetlify, isLinuxServer, 
-    nodeEnv: process.env.NODE_ENV,
+// Debug logging
+if (!isLocalWindows) {
+  console.log('[Environment] Running on Linux/Serverless:', { 
+    platform: process.platform,
     dir: __dirname 
   });
 }
@@ -37,7 +33,7 @@ app.get('/api', (req, res) => {
 });
 
 // File Upload Configuration
-const uploadDir = isServerless ? path.join(os.tmpdir(), 'uploads') : path.join(__dirname, 'uploads');
+const uploadDir = !isLocalWindows ? path.join(os.tmpdir(), 'uploads') : path.join(__dirname, 'uploads');
 app.use('/uploads', express.static(uploadDir));
 
 // Ensure uploads directory exists (Safe check for Serverless)
@@ -50,10 +46,9 @@ try {
 }
 
 // File Upload Configuration
-// On Serverless (Netlify/Vercel), we MUST use Memory Storage. 
-// We only use Disk Storage if we are on a Windows machine (local dev) or if explicitly told.
-const isLocalWindows = process.platform === 'win32';
-const useMemoryStorage = isServerless || !isLocalWindows;
+// Netlify/Vercel have a read-only filesystem. We MUST use Memory Storage.
+// We only use Disk Storage for local Windows development.
+const useMemoryStorage = !isLocalWindows;
 
 const storage = useMemoryStorage
   ? multer.memoryStorage() 
