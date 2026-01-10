@@ -1,21 +1,28 @@
 const serverless = require('serverless-http');
 const express = require('express');
+const path = require('path');
 
 let app;
 try {
-  // Use a simple relative path so Netlify's bundler can find the file
+  // Attempt 1: Standard relative path
   app = require('../../backend/server');
 } catch (err) {
-  console.error('CRITICAL ERROR:', err);
-  
-  app = express();
-  app.all('*', (req, res) => {
-    res.status(500).json({ 
-      success: false,
-      error: 'Backend Error: ' + err.message,
-      stack: err.stack
+  try {
+    // Attempt 2: Absolute path relative to task root
+    app = require('/var/task/backend/server');
+  } catch (err2) {
+    console.error('CRITICAL ERROR LOADING BACKEND:', err2);
+    
+    app = express();
+    app.all('*', (req, res) => {
+      res.status(500).json({ 
+        success: false,
+        error: 'Backend missing on server. Please check netlify.toml included_files.',
+        details: err2.message,
+        triedPaths: ['../../backend/server', '/var/task/backend/server']
+      });
     });
-  });
+  }
 }
 
 const handler = serverless(app);

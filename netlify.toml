@@ -4,7 +4,8 @@
 
 [functions]
   directory = "netlify/functions"
-  node_bundler = "esbuild"
+  # Using the default bundler which is better at following relative paths
+  node_bundler = "zisi" 
   included_files = ["backend/**"]
 
 [[redirects]]
