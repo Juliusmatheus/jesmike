@@ -85,12 +85,14 @@ app.use((err, req, res, next) => {
 });
 
 // PostgreSQL connection
-function getPoolConfig() {
+let pool;
+function getPool() {
+  if (pool) return pool;
+
   const connectionString = (process.env.DATABASE_URL || process.env.NETLIFY_DATABASE_URL || '').trim();
 
-  // If in production and no connection string is provided, we might want to log a warning
   if (isServerless && !connectionString) {
-    console.warn('WARNING: Running in serverless mode but no DATABASE_URL or NETLIFY_DATABASE_URL found.');
+    console.warn('WARNING: No DATABASE_URL found. Database features will fail.');
   }
 
   const sslEnabled =
@@ -99,31 +101,33 @@ function getPoolConfig() {
     (connectionString && !connectionString.includes('localhost') && !connectionString.includes('127.0.0.1'));
 
   const config = {
-    max: 1, // Only 1 connection at a time for serverless to prevent overloading
-    idleTimeoutMillis: 1000, // Close idle connections immediately
-    connectionTimeoutMillis: 5000, // Wait max 5s to connect
-  };
-
-  if (connectionString) {
-    return {
-      ...config,
-      connectionString,
-      ssl: sslEnabled ? { rejectUnauthorized: false } : undefined,
-    };
-  }
-
-  return {
-    ...config,
-    user: process.env.DB_USER || 'jsmike',
-    host: process.env.DB_HOST || 'localhost',
-    database: process.env.DB_NAME || 'postgres',
-    password: process.env.DB_PASSWORD || 'root',
-    port: process.env.DB_PORT || 5432,
+    connectionString: connectionString || undefined,
+    user: !connectionString ? (process.env.DB_USER || 'jsmike') : undefined,
+    host: !connectionString ? (process.env.DB_HOST || 'localhost') : undefined,
+    database: !connectionString ? (process.env.DB_NAME || 'postgres') : undefined,
+    password: !connectionString ? (process.env.DB_PASSWORD || 'root') : undefined,
+    port: !connectionString ? (process.env.DB_PORT || 5432) : undefined,
     ssl: sslEnabled ? { rejectUnauthorized: false } : undefined,
+    max: 1,
+    connectionTimeoutMillis: 5000,
   };
+
+  pool = new Pool(config);
+  
+  // Handle pool errors to prevent process crashes
+  pool.on('error', (err) => {
+    console.error('Unexpected error on idle client', err);
+    pool = null; // Reset pool so it recreates on next request
+  });
+
+  return pool;
 }
 
-const pool = new Pool(getPoolConfig());
+// Helper to get a client from the lazy pool
+async function getDbClient() {
+  const p = getPool();
+  return await p.connect();
+}
 
 async function pickExistingColumn(tableName, candidates) {
   for (const col of candidates) {
@@ -351,18 +355,6 @@ function getSmtpTransporter() {
     port,
     secure,
     auth: { user, pass },
-  });
-}
-
-// Test database connection (Log only on local, skip on serverless to save time)
-if (!isServerless) {
-  pool.connect((err, client, release) => {
-    if (err) {
-      console.error('Error acquiring client', err.stack);
-    } else {
-      console.log('Connected to PostgreSQL database');
-      release();
-    }
   });
 }
 
@@ -1000,14 +992,10 @@ app.put('/api/admin/system-config', async (req, res) => {
 
 // SME Registration endpoints
 app.post('/api/sme/register', upload.array('documents'), async (req, res) => {
-  // Check for pool availability
-  if (!pool) {
-    return res.status(500).json({ success: false, error: 'Database connection not initialized' });
-  }
-
   let client;
   try {
-    client = await pool.connect();
+    const currentPool = getPool();
+    client = await currentPool.connect();
     await client.query('BEGIN');
 
     // Debug: helps diagnose "all fields null" / multipart parsing issues
