@@ -103,6 +103,9 @@ function getPoolConfig() {
     return {
       connectionString,
       ssl: sslEnabled ? { rejectUnauthorized: false } : undefined,
+      max: 10,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 10000,
     };
   }
 
@@ -113,6 +116,9 @@ function getPoolConfig() {
     password: process.env.DB_PASSWORD || 'root',
     port: process.env.DB_PORT || 5432,
     ssl: sslEnabled ? { rejectUnauthorized: false } : undefined,
+    max: 10,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 10000,
   };
 }
 

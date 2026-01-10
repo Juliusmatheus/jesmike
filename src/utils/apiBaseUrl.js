@@ -36,7 +36,12 @@ export function getApiBaseUrl() {
     return normalize(trimmed);
   }
 
-  // Default: in production use same-origin (Vercel will serve /api/*)
+  // If we are running on a .netlify.app domain, always use same-origin
+  if (typeof window !== 'undefined' && window.location.hostname.includes('netlify.app')) {
+    return '';
+  }
+
+  // Default: in production use same-origin (Netlify will serve /api/*)
   if (process.env.NODE_ENV === 'production') return '';
 
   // Default dev backend
