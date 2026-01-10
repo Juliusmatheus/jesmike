@@ -140,6 +140,9 @@ async function pickExistingColumn(tableName, candidates) {
 
 // Ensure required tables exist (keeps local dev setup smooth)
 async function ensureTables() {
+  // On Serverless, we skip the heavy table check to prevent timeouts.
+  // We assume the DB is already set up.
+  if (isServerless) return;
   try {
     // Minimal schema needed by the API (safe to run repeatedly)
     await pool.query(`
@@ -347,15 +350,17 @@ function getSmtpTransporter() {
   });
 }
 
-// Test database connection
-pool.connect((err, client, release) => {
-  if (err) {
-    console.error('Error acquiring client', err.stack);
-  } else {
-    console.log('Connected to PostgreSQL database');
-    release();
-  }
-});
+// Test database connection (Log only on local, skip on serverless to save time)
+if (!isServerless) {
+  pool.connect((err, client, release) => {
+    if (err) {
+      console.error('Error acquiring client', err.stack);
+    } else {
+      console.log('Connected to PostgreSQL database');
+      release();
+    }
+  });
+}
 
 // Statistics API endpoints
 app.get('/api/statistics/summary', async (req, res) => {
