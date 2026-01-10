@@ -88,6 +88,11 @@ app.use((err, req, res, next) => {
 function getPoolConfig() {
   const connectionString = (process.env.DATABASE_URL || process.env.NETLIFY_DATABASE_URL || '').trim();
 
+  // If in production and no connection string is provided, we might want to log a warning
+  if (isServerless && !connectionString) {
+    console.warn('WARNING: Running in serverless mode but no DATABASE_URL or NETLIFY_DATABASE_URL found.');
+  }
+
   const sslEnabled =
     isServerless ||
     String(process.env.DB_SSL || '').toLowerCase() === 'true' ||
@@ -995,8 +1000,14 @@ app.put('/api/admin/system-config', async (req, res) => {
 
 // SME Registration endpoints
 app.post('/api/sme/register', upload.array('documents'), async (req, res) => {
-  const client = await pool.connect();
+  // Check for pool availability
+  if (!pool) {
+    return res.status(500).json({ success: false, error: 'Database connection not initialized' });
+  }
+
+  let client;
   try {
+    client = await pool.connect();
     await client.query('BEGIN');
 
     // Debug: helps diagnose "all fields null" / multipart parsing issues
