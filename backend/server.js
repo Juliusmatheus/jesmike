@@ -76,7 +76,8 @@ app.use((err, req, res, next) => {
 // PostgreSQL connection
 // Supports Neon/hosted Postgres via DATABASE_URL (recommended on Vercel).
 function getPoolConfig() {
-  const connectionString = process.env.DATABASE_URL && String(process.env.DATABASE_URL).trim();
+  const connectionString = (process.env.DATABASE_URL || process.env.NETLIFY_DATABASE_URL) && 
+    String(process.env.DATABASE_URL || process.env.NETLIFY_DATABASE_URL).trim();
 
   // Neon (and most hosted Postgres) require SSL.
   const sslEnabled =
