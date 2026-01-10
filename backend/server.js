@@ -20,12 +20,9 @@ const isServerless = isVercel || isNetlify;
 app.use(cors());
 app.use(express.json());
 
-// Normalize path for Netlify/Vercel (ensure /api prefix exists for router)
-app.use((req, res, next) => {
-  if (!req.url.startsWith('/api') && req.url !== '/' && req.url !== '') {
-    req.url = `/api${req.url.startsWith('/') ? '' : '/'}${req.url}`;
-  }
-  next();
+// Health Check / API Root
+app.get('/api', (req, res) => {
+  res.json({ message: 'SME Platform API is alive', env: isServerless ? 'serverless' : 'local' });
 });
 
 // File Upload Configuration
