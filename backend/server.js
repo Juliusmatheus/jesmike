@@ -14,7 +14,8 @@ const requestedPort = Number(process.env.PORT) || 5002;
 // Detect Environment
 const isVercel = Boolean(process.env.VERCEL);
 const isNetlify = Boolean(process.env.NETLIFY) || Boolean(process.env.CONTEXT) || Boolean(process.env.LAMBDA_TASK_ROOT);
-const isServerless = isVercel || isNetlify;
+const isServerPath = __dirname.includes('/var/task') || __dirname.includes('netlify');
+const isServerless = isVercel || isNetlify || isServerPath || process.env.NODE_ENV === 'production';
 
 // Middleware
 app.use(cors());
@@ -40,7 +41,7 @@ try {
 
 // File Upload Configuration
 // On Serverless (Netlify/Vercel), we use Memory Storage because the filesystem is read-only
-const storage = isServerless 
+const storage = (isServerless || !fs.existsSync(uploadDir))
   ? multer.memoryStorage() 
   : multer.diskStorage({
       destination: (req, file, cb) => {
