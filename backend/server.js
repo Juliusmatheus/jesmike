@@ -29,9 +29,13 @@ app.get('/api', (req, res) => {
 const uploadDir = isServerless ? path.join(os.tmpdir(), 'uploads') : path.join(__dirname, 'uploads');
 app.use('/uploads', express.static(uploadDir));
 
-// Ensure uploads directory exists
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
+// Ensure uploads directory exists (Safe check for Serverless)
+try {
+  if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+  }
+} catch (folderErr) {
+  console.warn('Could not create upload directory, skipping...', folderErr.message);
 }
 
 // File Upload Configuration
