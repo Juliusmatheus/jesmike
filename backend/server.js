@@ -85,37 +85,36 @@ app.use((err, req, res, next) => {
 });
 
 // PostgreSQL connection
-// Supports Neon/hosted Postgres via DATABASE_URL (recommended on Vercel).
 function getPoolConfig() {
-  const connectionString = (process.env.DATABASE_URL || process.env.NETLIFY_DATABASE_URL) && 
-    String(process.env.DATABASE_URL || process.env.NETLIFY_DATABASE_URL).trim();
+  const connectionString = (process.env.DATABASE_URL || process.env.NETLIFY_DATABASE_URL || '').trim();
 
-  // Neon (and most hosted Postgres) require SSL.
   const sslEnabled =
-    String(process.env.DB_SSL || '').toLowerCase() === 'true' ||
     isServerless ||
+    String(process.env.DB_SSL || '').toLowerCase() === 'true' ||
     (connectionString && !connectionString.includes('localhost') && !connectionString.includes('127.0.0.1'));
+
+  const config = {
+    max: 1, // Only 1 connection at a time for serverless to prevent overloading
+    idleTimeoutMillis: 1000, // Close idle connections immediately
+    connectionTimeoutMillis: 5000, // Wait max 5s to connect
+  };
 
   if (connectionString) {
     return {
+      ...config,
       connectionString,
       ssl: sslEnabled ? { rejectUnauthorized: false } : undefined,
-      max: 10,
-      idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 10000,
     };
   }
 
   return {
+    ...config,
     user: process.env.DB_USER || 'jsmike',
     host: process.env.DB_HOST || 'localhost',
     database: process.env.DB_NAME || 'postgres',
     password: process.env.DB_PASSWORD || 'root',
     port: process.env.DB_PORT || 5432,
     ssl: sslEnabled ? { rejectUnauthorized: false } : undefined,
-    max: 10,
-    idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 10000,
   };
 }
 
