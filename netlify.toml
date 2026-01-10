@@ -3,11 +3,12 @@
   publish = "build"
 
 [functions]
-  directory = "api"
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
 
 [[redirects]]
   from = "/api/*"
-  to = "/.netlify/functions/[...path]"
+  to = "/.netlify/functions/api"
   status = 200
 
 [[redirects]]
