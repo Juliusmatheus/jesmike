@@ -206,6 +206,13 @@ async function ensureTables() {
   `);
   // Auth: ensure password_hash column exists
   await currentPool.query(`ALTER TABLE smes ADD COLUMN IF NOT EXISTS password_hash TEXT;`);
+  // Seed admin password hash if missing (one-time)
+  const adminPassword = process.env.ADMIN_PASSWORD || 'Admin@123';
+  const adminHash = await bcrypt.hash(adminPassword, 10);
+  await currentPool.query(
+    `UPDATE smes SET password_hash = $1 WHERE email = 'admin@jesmike.com' AND (password_hash IS NULL OR password_hash = '')`,
+    [adminHash]
+  );
 
   await currentPool.query(`
     CREATE TABLE IF NOT EXISTS investors (
