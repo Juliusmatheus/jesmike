@@ -27,6 +27,16 @@ if (!isLocalWindows) {
 // Middleware
 app.use(cors());
 app.use(express.json());
+// Ensure schema ready before handling requests
+app.use(async (req, res, next) => {
+  try {
+    await ensureTablesOnce();
+    next();
+  } catch (err) {
+    console.error('ensureTablesOnce failed:', err);
+    res.status(500).json({ error: 'Database setup error' });
+  }
+});
 
 // Health Check / API Root
 app.get('/api', (req, res) => {
@@ -277,9 +287,16 @@ async function ensureTables() {
     );
   `);
 }
-// Do not call ensureTables() at top level on serverless to prevent startup timeouts
+// Run ensureTables only once per cold start (serverless-safe)
+let tablesReady = false;
+async function ensureTablesOnce() {
+  if (tablesReady) return;
+  await ensureTables();
+  tablesReady = true;
+}
+// On local dev, run immediately
 if (!isServerless) {
-  ensureTables();
+  ensureTablesOnce().catch((err) => console.error('ensureTablesOnce error:', err));
 }
 
 function getSmtpTransporter() {
