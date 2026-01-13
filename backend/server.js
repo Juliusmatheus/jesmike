@@ -286,6 +286,49 @@ async function ensureTables() {
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `);
+
+  // Admin-managed opportunities shown on the public "Investments" page
+  await currentPool.query(`
+    CREATE TABLE IF NOT EXISTS admin_investment_opportunities (
+      id SERIAL PRIMARY KEY,
+      title TEXT NOT NULL,
+      description TEXT NOT NULL,
+      sector TEXT,
+      sub_industry TEXT,
+      country TEXT,
+      stage TEXT,
+      investment_range TEXT,
+      requirements TEXT,
+      contact TEXT,
+      image_key TEXT,
+      is_active BOOLEAN DEFAULT true,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+  await currentPool.query(`ALTER TABLE admin_investment_opportunities ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;`);
+  await currentPool.query(`CREATE INDEX IF NOT EXISTS idx_admin_investment_opportunities_active ON admin_investment_opportunities(is_active);`);
+
+  // Admin-managed JESMIKE projects (shown/managed in Admin Panel)
+  await currentPool.query(`
+    CREATE TABLE IF NOT EXISTS admin_projects (
+      id SERIAL PRIMARY KEY,
+      title TEXT NOT NULL,
+      description TEXT NOT NULL,
+      category TEXT,
+      country TEXT,
+      stage TEXT,
+      start_date DATE,
+      end_date DATE,
+      budget TEXT,
+      contact TEXT,
+      is_active BOOLEAN DEFAULT true,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+  await currentPool.query(`ALTER TABLE admin_projects ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;`);
+  await currentPool.query(`CREATE INDEX IF NOT EXISTS idx_admin_projects_active ON admin_projects(is_active);`);
 }
 // Run ensureTables only once per cold start (serverless-safe)
 let tablesReady = false;
