@@ -137,6 +137,10 @@ function getPool() {
   return pool;
 }
 
+// Initialize the pool once so legacy code paths that still use `pool.query(...)`
+// have a defined pool instance in serverless environments.
+getPool();
+
 // Helper to get a client from the lazy pool
 async function getDbClient() {
   const p = getPool();
@@ -146,7 +150,8 @@ async function getDbClient() {
 async function pickExistingColumn(tableName, candidates) {
   for (const col of candidates) {
     // eslint-disable-next-line no-await-in-loop
-    const r = await pool.query(
+    const currentPool = getPool();
+    const r = await currentPool.query(
       `SELECT 1
        FROM information_schema.columns
        WHERE table_schema = 'public'
@@ -1621,7 +1626,8 @@ app.get('/api/investment-opportunities/:id', async (req, res) => {
     if (!ref) return res.status(400).json({ error: 'Invalid opportunity id' });
 
     if (ref.source === 'admin') {
-      const r = await pool.query(
+      const currentPool = getPool();
+    const r = await currentPool.query(
         `
           SELECT
             id,
@@ -1663,7 +1669,8 @@ app.get('/api/investment-opportunities/:id', async (req, res) => {
     }
 
     // SME opportunity details (legacy)
-    const r = await pool.query(
+    const currentPool = getPool();
+    const r = await currentPool.query(
       `
         SELECT
           io.id,
@@ -1719,7 +1726,8 @@ app.post('/api/investment-opportunities/:id/interest', async (req, res) => {
       return res.status(400).json({ error: 'Please provide at least your name or email' });
     }
 
-    const r = await pool.query(
+    const currentPool = getPool();
+    const r = await currentPool.query(
       `
         INSERT INTO investment_interests (
           opportunity_source, opportunity_id, name, email, phone, message, status
@@ -1799,7 +1807,8 @@ app.delete('/api/admin/investment-interests/:id', async (req, res) => {
 app.get('/api/admin/projects', async (req, res) => {
   try {
     const includeInactive = String(req.query.includeInactive || 'false').toLowerCase() === 'true';
-    const r = await pool.query(
+    const currentPool = getPool();
+    const r = await currentPool.query(
       `
         SELECT *
         FROM admin_projects
@@ -1832,7 +1841,8 @@ app.post('/api/admin/projects', async (req, res) => {
 
     if (!title || !description) return res.status(400).json({ error: 'title and description are required' });
 
-    const r = await pool.query(
+    const currentPool = getPool();
+    const r = await currentPool.query(
       `
         INSERT INTO admin_projects (
           title, description, category, country, stage, start_date, end_date, budget, contact, is_active
@@ -1916,7 +1926,8 @@ app.delete('/api/admin/projects/:id', async (req, res) => {
 app.get('/api/admin/projects/:id/files', async (req, res) => {
   try {
     const { id } = req.params;
-    const r = await pool.query(
+    const currentPool = getPool();
+    const r = await currentPool.query(
       `
         SELECT id, file_name, file_path, file_type, file_size, created_at
         FROM admin_project_files
@@ -1946,7 +1957,8 @@ app.post('/api/admin/projects/:id/files', upload.array('files'), async (req, res
     for (const file of files) {
       const publicPath = `/uploads/${path.basename(file.path)}`;
       // eslint-disable-next-line no-await-in-loop
-      const r = await pool.query(
+      const currentPool = getPool();
+    const r = await currentPool.query(
         `
           INSERT INTO admin_project_files (project_id, file_name, file_path, file_type, file_size)
           VALUES ($1,$2,$3,$4,$5)
@@ -1967,7 +1979,8 @@ app.post('/api/admin/projects/:id/files', upload.array('files'), async (req, res
 app.delete('/api/admin/projects/:projectId/files/:fileId', async (req, res) => {
   try {
     const { projectId, fileId } = req.params;
-    const r = await pool.query(
+    const currentPool = getPool();
+    const r = await currentPool.query(
       `
         DELETE FROM admin_project_files
         WHERE id = $1 AND project_id = $2
