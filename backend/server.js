@@ -6,6 +6,7 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const nodemailer = require('nodemailer');
+const bcrypt = require('bcryptjs');
 require('dotenv').config();
 
 const app = express();
@@ -196,12 +197,15 @@ async function ensureTables() {
       phone VARCHAR(50) NOT NULL,
       status VARCHAR(50) DEFAULT 'pending',
       documents_count INTEGER DEFAULT 0,
+      password_hash TEXT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       deleted_at TIMESTAMP NULL,
       deleted_prev_status VARCHAR(50) NULL
     );
   `);
+  // Auth: ensure password_hash column exists
+  await currentPool.query(`ALTER TABLE smes ADD COLUMN IF NOT EXISTS password_hash TEXT;`);
 
   await currentPool.query(`
     CREATE TABLE IF NOT EXISTS investors (
@@ -971,7 +975,8 @@ app.post('/api/sme/register', upload.array('documents'), async (req, res) => {
       years_experience,
       email,
       phone,
-      status
+      status,
+      password
     } = req.body;
 
     // Validate required fields early so we don't insert nulls
@@ -981,6 +986,7 @@ app.post('/api/sme/register', upload.array('documents'), async (req, res) => {
     if (!region) missing.push('region'); // used as country in the UI
     if (!owner_name) missing.push('owner_name');
     if (!email) missing.push('email');
+    if (!password) missing.push('password');
 
     if (missing.length) {
       await client.query('ROLLBACK');
@@ -1003,6 +1009,15 @@ app.post('/api/sme/register', upload.array('documents'), async (req, res) => {
     }
 
     const documents_count = req.files ? req.files.length : 0;
+    const passwordInput = String(password || '').trim();
+    if (!passwordInput || passwordInput.length < 8) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({
+        success: false,
+        error: 'Password must be at least 8 characters.',
+      });
+    }
+    const passwordHash = await bcrypt.hash(passwordInput, 10);
 
     // Insert new SME registration
     const insertQuery = `
@@ -1030,13 +1045,14 @@ app.post('/api/sme/register', upload.array('documents'), async (req, res) => {
         email,
         phone,
         status,
+        password_hash,
         documents_count,
         created_at,
         updated_at
       ) VALUES (
         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
         $11, $12, $13, $14, $15, $16, $17, $18, $19, $20,
-        $21, $22, $23, $24, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+        $21, $22, $23, $24, $25, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
       ) RETURNING *
     `;
 
@@ -1064,6 +1080,7 @@ app.post('/api/sme/register', upload.array('documents'), async (req, res) => {
       email,
       phone,
       status || 'pending',
+      passwordHash,
       documents_count
     ];
 
@@ -1181,6 +1198,61 @@ app.get('/api/sme/check/:email', async (req, res) => {
   } catch (error) {
     console.error('Error checking SME registration:', error);
     res.status(500).json({ error: 'Failed to check registration' });
+  }
+});
+
+// Auth: login with email + password (hashed)
+app.post('/api/auth/login', async (req, res) => {
+  const { email, password } = req.body || {};
+  if (!email || !password) {
+    return res.status(400).json({ success: false, error: 'Email and password are required.' });
+  }
+
+  try {
+    await ensureTables();
+    const currentPool = getPool();
+    const result = await currentPool.query(
+      `
+        SELECT id, email, owner_name, business_name, status, password_hash
+        FROM smes
+        WHERE email = $1
+        LIMIT 1
+      `,
+      [email]
+    );
+
+    if (!result.rows.length) {
+      return res.status(401).json({ success: false, error: 'Invalid email or password.' });
+    }
+
+    const user = result.rows[0];
+    if (!user.password_hash) {
+      return res.status(401).json({
+        success: false,
+        error: 'Password not set. Please register again or contact support.',
+      });
+    }
+
+    const isValid = await bcrypt.compare(password, user.password_hash);
+    if (!isValid) {
+      return res.status(401).json({ success: false, error: 'Invalid email or password.' });
+    }
+
+    const isAdminUser = user.email.includes('admin') || user.email === 'admin@jesmike.com';
+    const userData = {
+      email: user.email,
+      name: user.owner_name,
+      businessName: user.business_name,
+      role: isAdminUser ? 'admin' : 'sme',
+      isAdmin: isAdminUser,
+      smeId: user.id,
+      status: user.status,
+    };
+
+    return res.json({ success: true, user: userData });
+  } catch (error) {
+    console.error('Auth login error:', error);
+    return res.status(500).json({ success: false, error: 'Login failed. Please try again.' });
   }
 });
 

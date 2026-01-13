@@ -55,6 +55,8 @@ const RegisterSME = () => {
     gender: '',
     age: '',
     yearsOfExperience: '',
+    password: '',
+    confirmPassword: '',
 
     // Documents
     documents: []
@@ -95,6 +97,8 @@ const RegisterSME = () => {
             gender: response.data.sme.owner_gender || '',
             age: response.data.sme.owner_age || '',
             yearsOfExperience: response.data.sme.years_experience || '',
+            password: '',
+            confirmPassword: '',
             documents: []
           });
           toast.info('Existing registration found. You can update your information.');
@@ -178,13 +182,21 @@ const RegisterSME = () => {
         }
         return true;
       case 2:
-        if (!formData.ownerFullName || !formData.email || !formData.phone || !formData.age) {
-          toast.error('Please fill in all required owner information');
+        if (!formData.ownerFullName || !formData.email || !formData.phone || !formData.age || !formData.password || !formData.confirmPassword) {
+          toast.error('Please fill in all required owner information, including password.');
           return false;
         }
         const age = parseInt(formData.age);
         if (age < 35 || age > 59) {
           toast.error('Business owner age must be between 35-59 years');
+          return false;
+        }
+        if (formData.password.length < 8) {
+          toast.error('Password must be at least 8 characters long.');
+          return false;
+        }
+        if (formData.password !== formData.confirmPassword) {
+          toast.error('Passwords do not match.');
           return false;
         }
         return true;
@@ -245,6 +257,7 @@ const RegisterSME = () => {
       formDataToSend.append('email', formData.email);
       formDataToSend.append('phone', formData.phone);
       formDataToSend.append('status', 'pending');
+      formDataToSend.append('password', formData.password);
       
       // Add documents
       formData.documents.forEach((file) => {
@@ -485,6 +498,30 @@ const RegisterSME = () => {
                   onChange={handleChange}
                   required
                   placeholder="Enter phone number"
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Password *</label>
+                <input
+                  type="password"
+                  name="password"
+                  className="form-control"
+                  value={formData.password}
+                  onChange={handleChange}
+                  required
+                  placeholder="Create a password (min 8 characters)"
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Confirm Password *</label>
+                <input
+                  type="password"
+                  name="confirmPassword"
+                  className="form-control"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  required
+                  placeholder="Re-enter your password"
                 />
               </div>
               <div className="form-group">

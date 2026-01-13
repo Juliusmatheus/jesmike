@@ -1,4 +1,5 @@
 const { Client } = require('pg');
+const bcrypt = require('bcryptjs');
 require('dotenv').config();
 
 async function main() {
@@ -24,6 +25,9 @@ async function main() {
   await client.connect();
 
   const email = 'admin@jesmike.com';
+  const adminPassword = process.env.ADMIN_PASSWORD || 'Admin@123';
+  const passwordHash = await bcrypt.hash(adminPassword, 10);
+
   const insertSql = `
     INSERT INTO smes (
       business_name,
@@ -43,14 +47,16 @@ async function main() {
       nationality,
       years_experience,
       status,
+      password_hash,
       documents_count,
       created_at,
       updated_at
     ) VALUES (
-      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP
+      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP
     )
     ON CONFLICT (email) DO UPDATE SET
       status = EXCLUDED.status,
+      password_hash = EXCLUDED.password_hash,
       updated_at = CURRENT_TIMESTAMP
   `;
 
@@ -72,6 +78,7 @@ async function main() {
     'Namibia',
     0,
     'active',
+    passwordHash,
     0,
   ];
 

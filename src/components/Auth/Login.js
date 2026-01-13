@@ -28,56 +28,43 @@ const Login = () => {
 
     try {
       const API_BASE_URL = getApiBaseUrl();
-      // Fallback: read from form fields in case controlled inputs don't update state
-      // (also makes automation/testing more reliable)
       const submittedEmail = String(e?.target?.elements?.email?.value ?? formData.email ?? '').trim();
+      const submittedPassword = String(e?.target?.elements?.password?.value ?? formData.password ?? '').trim();
 
-      // Check if user exists in database
-      const response = await axios.get(`${API_BASE_URL}/api/sme/check/${submittedEmail}`);
+      const response = await axios.post(`${API_BASE_URL}/api/auth/login`, {
+        email: submittedEmail,
+        password: submittedPassword,
+      });
 
-      if (response.data.exists) {
-        const sme = response.data.sme;
-
-        // Create user data from SME record
-        const isAdminUser = sme.email.includes('admin') || sme.email === 'admin@jesmike.com';
-        const userData = {
-          email: sme.email,
-          name: sme.owner_name,
-          businessName: sme.business_name,
-          role: isAdminUser ? 'admin' : 'sme',
-          isAdmin: isAdminUser,
-          smeId: sme.id,
-          status: sme.status
-        };
+      if (response.data?.success && response.data?.user) {
+        const userData = response.data.user;
 
         // Store user data
         login(userData);
-        localStorage.setItem('userEmail', sme.email);
-        localStorage.setItem('smeId', sme.id);
+        localStorage.setItem('userEmail', userData.email);
+        localStorage.setItem('smeId', userData.smeId);
 
-        toast.success(`Welcome back, ${sme.owner_name}!`);
+        toast.success(`Welcome back, ${userData.name}!`);
 
         // Redirect: Dashboard is admin-only
-        if (isAdminUser) {
+        if (userData.isAdmin) {
           navigate('/dashboard');
-        } else if (sme.status === 'active') {
+        } else if (userData.status === 'active') {
           navigate('/profile');
-        } else if (sme.status === 'pending') {
+        } else if (userData.status === 'pending') {
           toast.info('Your registration is pending approval');
           navigate('/profile');
         } else {
-          toast.warning('Your registration status: ' + sme.status);
+          toast.warning('Your registration status: ' + userData.status);
           navigate('/profile');
         }
       } else {
-        toast.error('Email not found. Please register first.');
-        setTimeout(() => {
-          navigate('/register');
-        }, 2000);
+        toast.error(response.data?.error || 'Login failed. Please check your email and password.');
       }
     } catch (error) {
       console.error('Login error:', error);
-      toast.error('Login failed. Please check your email and try again.');
+      const message = error.response?.data?.error || 'Login failed. Please check your email and password.';
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -135,7 +122,7 @@ const Login = () => {
 
         <div className="demo-credentials">
           <p style={{ fontSize: '12px', color: '#666', marginTop: '20px' }}>
-            Note: Login with your registered email address. Password validation coming soon.
+            Note: Use the password you set during registration. Minimum 8 characters.
           </p>
         </div>
       </div>
