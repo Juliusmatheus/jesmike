@@ -126,7 +126,7 @@ const About = () => {
             </div>
             <div className="objective-card">
               <img src="/hero-images/link.svg" alt="Matchmaking" className="objective-image-icon" />
-              <h3>MTC</h3>
+              <h3>Connect with Investors</h3>
               <p>
                 Create a matchmaking platform connecting Namibian SMEs with JESMIKE investors,
                 promoting foreign direct investment and economic development.
